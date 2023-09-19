@@ -2,6 +2,7 @@
 <script>
   import { link, location } from "svelte-spa-router";
   let showMenu = false;
+  
 </script>
 
 <nav class="bg-gray-800 rounded-t-lg">
