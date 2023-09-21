@@ -1,7 +1,11 @@
 <script>
-  import { marked } from "marked";
-  import { markdownContent } from "./markdown.svelte";
-  const markdown = marked(markdownContent);
+  // import { marked } from "marked";
+  // import { markdownContent } from "./markdown.svelte";
+  // const markdown = marked(markdownContent);
+
+  // @ts-ignore
+  import Content from "./markdown.svx";
+  // @ts-ignore
 </script>
 
 <div class="bg-white rounded-b-lg shadow-2xl">
@@ -10,7 +14,7 @@
   </div>
 </div>
 <main>
-  <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-    {@html markdown}
+  <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8 whitespace-normal">
+    <Content />
   </div>
 </main>

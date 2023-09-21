@@ -2,15 +2,14 @@
 <script>
   import { link, location } from "svelte-spa-router";
   let showMenu = false;
-  
 </script>
 
-<nav class="bg-gray-800 rounded-t-lg">
+<nav class="bg-gray-400 dark:bg-gray-800 rounded-t-lg">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <div class="flex h-16 items-center justify-between">
       <div class="flex items-center">
         <div class="flex-shrink-0 font-bold text-lg">
-          <a href="/">
+          <a href="/" use:link>
             <p>PieRoot</p>
           </a>
         </div>
@@ -21,14 +20,14 @@
               <a
                 href="/"
                 use:link
-                class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium"
+                class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
                 aria-current="page">Home</a
               >
             {:else}
               <a
                 href="/"
                 use:link
-                class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
+                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
                 >Home</a
               >
             {/if}
@@ -37,14 +36,14 @@
               <a
                 href="/portfolio"
                 use:link
-                class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium"
+                class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
                 aria-current="page">Portfolio</a
               >
             {:else}
               <a
                 href="/portfolio"
                 use:link
-                class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
+                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
                 >Portfolio</a
               >
             {/if}

@@ -1,5 +1,5 @@
 <script>
-  import Time from "../components/Time.svelte";
+  import Time from "../lib/Time.svelte";
 </script>
 
 <div class="bg-white rounded-b-lg shadow-2xl">

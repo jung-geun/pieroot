@@ -10,16 +10,24 @@ export default {
       },
     },
   },
-  darkmode: "class",
   plugins: [
     plugin(function ({ addBase, config }) {
       addBase({
-        h1: { fontSize: config("theme.fontSize.2xl") },
-        h2: { fontSize: config("theme.fontSize.xl") },
-        h3: { fontSize: config("theme.fontSize.lg") },
-        h4: { fontSize: config("theme.fontSize.base") },
-        h5: { fontSize: config("theme.fontSize.sm") },
-        h6: { fontSize: config("theme.fontSize.xs") },
+        h1: {
+          fontSize: config("theme.fontSize.4xl"),
+          fontWeight: config("theme.fontWeight.bold"),
+        },
+        h2: {
+          fontSize: config("theme.fontSize.2xl"),
+          fontWeight: config("theme.fontWeight.bold"),
+        },
+        h3: {
+          fontSize: config("theme.fontSize.xl"),
+          fontWeight: config("theme.fontWeight.bold"),
+        },
+        h4: { fontSize: config("theme.fontSize.lg") },
+        h5: { fontSize: config("theme.fontSize.base") },
+        h6: { fontSize: config("theme.fontSize.text-sm") },
       });
     }),
   ],
