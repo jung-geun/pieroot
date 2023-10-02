@@ -186,3 +186,5 @@ package
 .htaccess
 .vscode/
 logs/
+backend/tmp/
+backend/database/env.json

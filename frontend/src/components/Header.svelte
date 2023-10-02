@@ -1,7 +1,15 @@
-<!-- <div class="min-h-full"> -->
 <script>
   import { link, location } from "svelte-spa-router";
   let showMenu = false;
+  let user_check = false;
+  function showMenuClick() {
+    showMenu = !showMenu;
+  }
+  $: if ($location == "/file_upload") {
+    if (user_check == false) {
+      window.location.href = "/login";
+    }
+  }
 </script>
 
 <nav class="bg-gray-400 dark:bg-gray-800 rounded-t-lg">
@@ -21,7 +29,7 @@
                 href="/"
                 use:link
                 class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                aria-current="page">Home</a
+                >Home</a
               >
             {:else}
               <a
@@ -37,7 +45,7 @@
                 href="/portfolio"
                 use:link
                 class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                aria-current="page">Portfolio</a
+                >Portfolio</a
               >
             {:else}
               <a
@@ -46,6 +54,25 @@
                 class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
                 >Portfolio</a
               >
+            {/if}
+
+            {#if user_check}
+              {#if $location == "/file_upload"}
+                <a
+                  href="/file_upload"
+                  use:link
+                  class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+                  >File Upload</a
+                >
+              {:else}
+                <a
+                  href="/file_upload"
+                  use:link
+                  class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+                >
+                  File Upload
+                </a>
+              {/if}
             {/if}
           </div>
         </div>
@@ -56,9 +83,7 @@
         <button
           type="button"
           class="relative inline-flex items-center justify-center rounded-md bg-gray-800 p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-          aria-controls="mobile-menu"
-          aria-expanded="false"
-          on:click={() => (showMenu = !showMenu)}
+          on:click={showMenuClick}
         >
           <span class="absolute -inset-0.5" />
           <span class="sr-only">Open main menu</span>
@@ -99,41 +124,60 @@
 
   <!-- Mobile menu, show/hide based on menu state. -->
   <div class="md:hidden" id="mobile-menu">
-    {#if showMenu}
-      <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-        <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
-        {#if $location === "/"}
-          <a
-            href="/"
-            use:link
-            class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            aria-current="page">Home</a
-          >
-        {:else}
-          <a
-            href="/"
-            use:link
-            class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Home</a
-          >
-        {/if}
+    <div
+      class="space-y-1 px-2 pb-3 pt-2 sm:px-3 {showMenu ? 'visible' : 'hidden'}"
+    >
+      <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
+      {#if $location === "/"}
+        <a
+          href="/"
+          use:link
+          class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+          >Home</a
+        >
+      {:else}
+        <a
+          href="/"
+          use:link
+          class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+          >Home</a
+        >
+      {/if}
 
-        {#if $location === "/portfolio"}
+      {#if $location === "/portfolio"}
+        <a
+          href="/portfolio"
+          use:link
+          class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+          >Portfolio</a
+        >
+      {:else}
+        <a
+          href="/portfolio"
+          use:link
+          class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+          >Portfolio</a
+        >
+      {/if}
+
+      {#if user_check}
+        {#if $location == "/file_upload"}
           <a
-            href="/portfolio"
+            href="/file_upload"
             use:link
             class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            aria-current="page">Portfolio</a
+            >File Upload</a
           >
         {:else}
           <a
-            href="/portfolio"
+            href="/file_upload"
             use:link
             class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Portfolio</a
           >
+            File Upload
+          </a>
         {/if}
-      </div>
-    {/if}
+      {/if}
+    </div>
   </div>
 </nav>
