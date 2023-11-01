@@ -187,4 +187,4 @@ package
 .vscode/
 logs/
 backend/tmp/
-backend/database/env.json
+backend/env.json

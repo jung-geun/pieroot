@@ -1,13 +1,27 @@
-<script>
-  import { link, location } from "svelte-spa-router";
-  let showMenu = false;
-  let user_check = false;
+<script lang="ts">
+  import { access_token, is_login, username } from "$stores/store";
+  import { link, location, push } from "svelte-spa-router";
+  let showMenu = true;
+
   function showMenuClick() {
     showMenu = !showMenu;
   }
   $: if ($location == "/file_upload") {
-    if (user_check == false) {
-      window.location.href = "/login";
+    if ($is_login == false || $access_token == "" || $username == "") {
+      is_login.set(false);
+      access_token.set("");
+      username.set("");
+      push("/login");
+    }
+  }
+  $: if ($location == "/logout") {
+    if ($is_login == false) {
+      push("/login");
+    } else {
+      access_token.set("");
+      username.set("");
+      is_login.set(false);
+      push("/login");
     }
   }
 </script>
@@ -56,7 +70,25 @@
               >
             {/if}
 
-            {#if user_check}
+            {#if $is_login == false}
+              {#if $location === "/login"}
+                <a
+                  href="/login"
+                  use:link
+                  class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+                  >Login</a
+                >
+              {:else}
+                <a
+                  href="/login"
+                  use:link
+                  class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+                  >Login</a
+                >
+              {/if}
+            {/if}
+
+            {#if $is_login}
               {#if $location == "/file_upload"}
                 <a
                   href="/file_upload"
@@ -73,6 +105,14 @@
                   File Upload
                 </a>
               {/if}
+
+              <a
+                href="/logout"
+                use:link
+                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+              >
+                Logout
+              </a>
             {/if}
           </div>
         </div>
@@ -160,7 +200,25 @@
         >
       {/if}
 
-      {#if user_check}
+      {#if $is_login == false}
+        {#if $location === "/login"}
+          <a
+            href="/login"
+            use:link
+            class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+            >Login</a
+          >
+        {:else}
+          <a
+            href="/login"
+            use:link
+            class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+            >Login</a
+          >
+        {/if}
+      {/if}
+
+      {#if $is_login}
         {#if $location == "/file_upload"}
           <a
             href="/file_upload"
@@ -177,7 +235,28 @@
             File Upload
           </a>
         {/if}
+        <a
+          href="/logout"
+          use:link
+          class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+        >
+          Logout
+        </a>
       {/if}
     </div>
   </div>
 </nav>
+<div class="bg-white rounded-b-lg shadow-2xl">
+  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+      {#if $location === "/"}
+        Home
+      {:else}
+        {$location
+          .replace(/\b[a-z]/g, (char) => char.toUpperCase())
+          .split("/")
+          .join(" ")}
+      {/if}
+    </h1>
+  </div>
+</div>

@@ -1,25 +1,20 @@
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { mdsvex } from "mdsvex";
-import path from "path";
+import remarkGrm from "remark-gfm";
+import github from "remark-github";
 
 export default {
   // Consult https://svelte.dev/docs#compile-time-svelte-preprocess
   // for more information about preprocessors
-  extensions: [".svelte", ".svx"],
+  extensions: [".svelte", ".md"],
   preprocess: [
     vitePreprocess(),
     mdsvex({
-      extensions: [".svx"],
+      extensions: [".md"],
+      remarkPlugins: [
+        [remarkGrm, { singleTilde: false }],
+        [github, { repository: "https://github.com/jung-geun/pieroot" }],
+      ],
     }),
   ],
-  kit: {
-    vite: {
-      resolve: {
-        alias: {
-          $components: path.resolve("./src/components"),
-          $lib: path.resolve("./src/lib"),
-        },
-      },
-    },
-  },
 };

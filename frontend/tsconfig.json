@@ -15,18 +15,21 @@
     "checkJs": true,
     "isolatedModules": true,
     "paths": {
-      "$components": [
-        "./src/components"
+      "$src/*": [
+        "./src/*"
       ],
       "$components/*": [
         "./src/components/*"
       ],
-      "$lib": [
-        "./src/lib"
-      ],
       "$lib/*": [
         "./src/lib/*"
-      ]
+      ],
+      "$assets/*": [
+        "./src/assets/*"
+      ],
+      "$stores/*": [
+        "./src/stores/*"
+      ],
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
