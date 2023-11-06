@@ -1,18 +1,23 @@
-from database_app import DataBaseApp, User, crud, get_db, init_env, oauth2_scheme
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.exceptions import HTTPException
-from sqlalchemy.orm import Session
-from jose import JWTError, jwt
-from typing import IO, Annotated, List
 import json
 import os
+from typing import IO, Annotated, List
 
-# env setting
-with open("./env.json", "r") as f:
-    SECRET = json.load(f)["SECRET_KEY"]
+from database_app import (
+    DataBaseApp,
+    User,
+    crud,
+    get_db,
+    init_env,
+    oauth2_scheme,
+    get_current_user,
+)
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi.exceptions import HTTPException
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError
+from sqlalchemy.orm import Session
 
-ALGORITHM = "HS256"
 
 file_router = APIRouter(
     prefix="/api/file",
@@ -26,7 +31,9 @@ async def save_upload_file_tmp(file: IO, path: str = "./tmp/"):
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
 
-        file_path = os.path.join(path, file.filename)
+        file_name_encode = file.filename.replace(" ", "_")
+
+        file_path = os.path.join(path, file_name_encode)
 
         if os.path.exists(file_path):
             raise HTTPException(status_code=400, detail="File is already exist")
@@ -44,6 +51,7 @@ async def save_upload_file_tmp(file: IO, path: str = "./tmp/"):
 @file_router.post("/upload")
 async def post_file_upload(
     request: Request,
+    token: str = Depends(oauth2_scheme),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
@@ -60,16 +68,15 @@ async def post_file_upload(
     """
     credentials_exception = HTTPException(
         status_code=401,
-        detail="Could not validate credentials",
+        detail="Unauthorized",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        token = request.headers["Authorization"].split(" ")[1]
+        # token = request.headers["Authorization"].split(" ")[1]
         if not files:
             raise HTTPException(status_code=400, detail="File is not exist")
-        payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
 
-        username = payload.get("sub")
+        username = get_current_user(token)
 
         if username is None:
             raise credentials_exception
@@ -99,7 +106,6 @@ async def post_file_upload(
 
             if result["cmd"] == "error":
                 count -= 1
-                logger.warning(f"Exception > {result['detail']}")
 
         data = {"detail": f"{count} 개의 파일 업로드에 성공했습니다."}
 
@@ -110,7 +116,7 @@ async def post_file_upload(
 
 
 @file_router.get("/list")
-async def get_file_list(
+def get_file_list(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ):
@@ -122,41 +128,72 @@ async def get_file_list(
     """
     credentials_exception = HTTPException(
         status_code=401,
-        detail="Could not validate credentials",
+        detail="Unauthorized",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username = get_current_user(token)
+
+        if username is None:
+            raise credentials_exception
 
         file_path = f"./tmp/{username}"
 
+        if not os.path.exists(file_path):
+            os.makedirs(file_path, exist_ok=True)
+
         file_list = os.listdir(file_path)
-        return {"file_list": file_list}
+
+        file_info = []
+        for index, file in enumerate(file_list):
+            file_size_tmp = os.path.getsize(f"{file_path}/{file}")
+            file_size = (
+                f"{file_size_tmp} B"
+                if file_size_tmp < 1024
+                else f"{round(file_size_tmp/1024,2)} KB"
+                if file_size_tmp < 1024 * 1024
+                else f"{round(file_size_tmp/(1024*1024),2)} MB"
+                if file_size_tmp < 1024 * 1024 * 1024
+                else f"{round(file_size_tmp/(1024*1024*1024),2)} GB"
+            )
+
+            file_name = file.replace("_", " ")
+
+            file_info.append({"name": file_name, "size": file_size})
+
+        if not file_list:
+            raise HTTPException(status_code=400, detail="아직 업로드한 파일이 없습니다.")
+
+        return {"file_list": file_info}
 
     except JWTError:
         raise credentials_exception
-    except Exception as e:
-        logger.warning(f"Exception > {e}")
-        return {"error": "file list error"}
 
 
 @file_router.get("/download/{file_name}")
-async def get_file_download(
+def get_file_download(
     file_name: str,
-    token: str = Depends(oauth2_scheme),
+    request: Request,
 ):
     credentials_exception = HTTPException(
         status_code=401,
-        detail="Could not validate credentials",
+        detail="Unauthorized",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        access_token = request.cookies.get("access_token").split(" ")[1]
 
-        download_path = f"./tmp/{username}/{file_name}"
+        username = get_current_user(access_token)
+
+        if username is None:
+            raise credentials_exception
+
+        file_name_encode = file_name.replace(" ", "_")
+
+        download_path = f"./tmp/{username}/{file_name_encode}"
+
         file_exist = os.path.exists(download_path)
+
         if not file_exist:
             raise HTTPException(status_code=400, detail="File is not exist")
 
@@ -164,3 +201,7 @@ async def get_file_download(
 
     except JWTError:
         raise credentials_exception
+
+
+# @file_router.get("/download/")
+# def get_

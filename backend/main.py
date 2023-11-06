@@ -3,7 +3,7 @@ import logging
 import os
 from typing import IO, Annotated, List
 
-from database_app import DataBaseApp, User, crud, get_db, init_env, oauth2_scheme
+from database_app import DataBaseApp, init_env
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordBearer
@@ -11,7 +11,7 @@ from file_app import file_router
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, HTMLResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 
 # logger setting
@@ -43,7 +43,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
 

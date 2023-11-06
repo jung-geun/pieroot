@@ -23,7 +23,7 @@ class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True, index=True)
-    mail = Column(String(40), unique=True)
+    mail = Column(String(50), unique=True)
     password = Column(CHAR(128))
     sign_date = Column(DateTime, default=datetime.now())
 

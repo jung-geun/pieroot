@@ -1,28 +1,51 @@
 <script lang="ts">
+  import fastapi from "$src/lib/api";
   import { access_token, is_login, username } from "$stores/store";
   import { link, location, push } from "svelte-spa-router";
-  let showMenu = true;
+  let showMenu = false;
 
   function showMenuClick() {
     showMenu = !showMenu;
   }
   $: if ($location == "/file_upload") {
     if ($is_login == false || $access_token == "" || $username == "") {
-      is_login.set(false);
-      access_token.set("");
-      username.set("");
-      push("/login");
+      push("/logout");
+    } else {
+      fastapi(
+        "me",
+        "/users/token",
+        {},
+        (json: any) => {},
+        (json_error: any) => {
+          fastapi(
+            "refresh",
+            "/users/token",
+            {},
+            (json: any) => {
+              access_token.set(json.access_token);
+              username.set(json.username);
+              is_login.set(true);
+            },
+            (json_error: any) => {
+              push("/logout");
+            }
+          );
+        }
+      );
     }
   }
   $: if ($location == "/logout") {
-    if ($is_login == false) {
-      push("/login");
-    } else {
-      access_token.set("");
-      username.set("");
-      is_login.set(false);
-      push("/login");
-    }
+    access_token.set("");
+    username.set("");
+    is_login.set(false);
+    fastapi(
+      "logout",
+      "/users/token",
+      {},
+      (json: any) => {},
+      (json_error: any) => {}
+    );
+    push("/login");
   }
 </script>
 
