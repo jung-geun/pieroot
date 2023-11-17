@@ -1,15 +1,26 @@
 <script>
-  import Time from "../lib/Time.svelte";
+  import Time from "$lib/Time.svelte";
 </script>
 
-
 <main>
-  <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-    개인 홈페이지입니다
+  <div
+    class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8 items-center justify-center flex flex-col"
+  >
+    <h2>안녕하세요, 저의 사이트에 오신 것을 환영합니다!</h2>
     <br />
-    현재는 개인 포트폴리오 페이지만 구현되어 있습니다
-    <br>
+    🌟 여러분을 제 창작의 공간으로 초대합니다. <br />
+    이곳은 IT 에 대한 제 생각과 경험을 담은 글, 제가 이룬 작업들을 볼 수 있습니다.
     <br />
-    <Time />
+    혁신적인 작업에서부터 일상의 소소한 생각까지, 제 웹사이트는 제가 추구하는 가치와
+    열정을 담아냅니다.
+    <br />
+    <br />
+    🔍 제 블로그에서 식견을 넓히실 수 있고, 갤러리에서 영감을 얻으실 수 있습니다.
+    <br />
+    또한 함께 무언가를 만들어갈 수 있는 기회를 찾고 계시다면 저와 연락을 주세요.
+    <br />
+    이곳은 단순한 포트폴리오를 넘어서, 대화를 나누고, 새로운 연결을 만들며, 기억에
+    남을 경험을 공유하는 곳입니다.
+    <br />
   </div>
 </main>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import fastapi from "$src/lib/api";
+  import fastapi from "$lib/ts/api";
   import { access_token, is_login, username } from "$stores/store";
   import { link, location, push } from "svelte-spa-router";
   let showMenu = false;
@@ -7,18 +7,19 @@
   function showMenuClick() {
     showMenu = !showMenu;
   }
-  $: if ($location == "/file_upload") {
+
+  $: if ($location == "/file") {
     if ($is_login == false || $access_token == "" || $username == "") {
       push("/logout");
     } else {
       fastapi(
-        "me",
+        "get",
         "/users/token",
         {},
         (json: any) => {},
         (json_error: any) => {
           fastapi(
-            "refresh",
+            "patch",
             "/users/token",
             {},
             (json: any) => {
@@ -26,7 +27,7 @@
               username.set(json.username);
               is_login.set(true);
             },
-            (json_error: any) => {
+            () => {
               push("/logout");
             }
           );
@@ -39,11 +40,11 @@
     username.set("");
     is_login.set(false);
     fastapi(
-      "logout",
+      "delete",
       "/users/token",
       {},
-      (json: any) => {},
-      (json_error: any) => {}
+      () => {},
+      () => {}
     );
     push("/login");
   }
@@ -93,6 +94,22 @@
               >
             {/if}
 
+            {#if $location === "/gallery"}
+              <a
+                href="/gallery"
+                use:link
+                class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+                >Gallery</a
+              >
+            {:else}
+              <a
+                href="/gallery"
+                use:link
+                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+                >Gallery</a
+              >
+            {/if}
+
             {#if $is_login == false}
               {#if $location === "/login"}
                 <a
@@ -112,20 +129,20 @@
             {/if}
 
             {#if $is_login}
-              {#if $location == "/file_upload"}
+              {#if $location == "/file"}
                 <a
-                  href="/file_upload"
+                  href="/file"
                   use:link
                   class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                  >File Upload</a
+                  >File</a
                 >
               {:else}
                 <a
-                  href="/file_upload"
+                  href="/file"
                   use:link
                   class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
                 >
-                  File Upload
+                  File
                 </a>
               {/if}
 
@@ -223,6 +240,22 @@
         >
       {/if}
 
+      {#if $location === "/gallery"}
+        <a
+          href="/gallery"
+          use:link
+          class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+          >Gallery</a
+        >
+      {:else}
+        <a
+          href="/gallery"
+          use:link
+          class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+          >Gallery</a
+        >
+      {/if}
+
       {#if $is_login == false}
         {#if $location === "/login"}
           <a
@@ -242,20 +275,20 @@
       {/if}
 
       {#if $is_login}
-        {#if $location == "/file_upload"}
+        {#if $location == "/file"}
           <a
-            href="/file_upload"
+            href="/file"
             use:link
             class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            >File Upload</a
+            >File</a
           >
         {:else}
           <a
-            href="/file_upload"
+            href="/file"
             use:link
             class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
           >
-            File Upload
+            File
           </a>
         {/if}
         <a

@@ -36,6 +36,12 @@ router = APIRouter(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/token")
 
+credentials_exception = HTTPException(
+    status_code=401,
+    detail="Unauthorized",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
 
 # Dependency
 def get_db():
@@ -78,11 +84,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     Returns:
         str: 유저의 이름
     """
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Unauthorized",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -129,10 +130,7 @@ def create_user(
             return JSONResponse({"detail": "회원가입이 완료되었습니다."}, status_code=200)
 
     except InvalidCredentialsException:
-        raise HTTPException(
-            status_code=402,
-            detail="Unauthorized",
-        )
+        raise credentials_exception
 
 
 @router.post("/token")
@@ -153,57 +151,61 @@ def token_login(
     Returns:
         JSONResponse: _description_
     """
-    if not form_data.username:
-        raise HTTPException(
-            status_code=401,
-            detail="mail을 입력해주세요.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not form_data.password:
-        raise HTTPException(
-            status_code=401,
-            detail="비밀번호를 입력해주세요.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    mail = form_data.username
-    password = form_data.password
+    try:
+        if not form_data.username:
+            raise HTTPException(
+                status_code=401,
+                detail="mail을 입력해주세요.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if not form_data.password:
+            raise HTTPException(
+                status_code=401,
+                detail="비밀번호를 입력해주세요.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        mail = form_data.username
+        password = form_data.password
 
-    result = crud.authenticate_user(db, mail, password)
+        result = crud.authenticate_user(db, mail, password)
 
-    if result["cmd"] == "error":
-        raise HTTPException(
-            status_code=401,
-            detail="아이디 또는 비밀번호가 일치하지 않습니다.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    else:
-        access_token_expires = timedelta(minutes=30)
-        access_token = create_access_token(mail, access_token_expires)
+        if result["cmd"] == "error":
+            raise HTTPException(
+                status_code=401,
+                detail="아이디 또는 비밀번호가 일치하지 않습니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        else:
+            access_token_expires = timedelta(minutes=30)
+            access_token = create_access_token(mail, access_token_expires)
 
-        response = JSONResponse(
-            {
-                "access_token": access_token,
-                "token_type": "bearer",
-                "username": mail,
-            },
-            status_code=200,
-        )
+            response = JSONResponse(
+                {
+                    "access_token": access_token,
+                    "token_type": "bearer",
+                    "username": mail,
+                },
+                status_code=200,
+            )
 
-        refresh_expires = timedelta(days=30)
-        refresh_token = create_access_token(
-            mail,
-            refresh_expires,
-        )
-        response.set_cookie(
-            key="access_token",  # 쿠키의 이름을 access_token으로 합니다.
-            value=f"Bearer {refresh_token}",  # access_token을 쿠키에 저장합니다.
-            httponly=True,  # javascript에서 쿠키를 접근할 수 없습니다.
-            secure=True,  # https에서만 쿠키를 전송합니다.
-            samesite="lax",  # csrf 공격 방지
-            expires=refresh_expires,  # 30분 뒤에 쿠키가 만료됩니다.
-        )
+            refresh_expires = timedelta(days=30)
+            refresh_token = create_access_token(
+                mail,
+                refresh_expires,
+            )
+            response.set_cookie(
+                key="access_token",  # 쿠키의 이름을 access_token으로 합니다.
+                value=f"Bearer {refresh_token}",  # access_token을 쿠키에 저장합니다.
+                httponly=True,  # javascript에서 쿠키를 접근할 수 없습니다.
+                secure=True,  # https에서만 쿠키를 전송합니다.
+                samesite="lax",  # csrf 공격 방지
+                expires=refresh_expires,  # 30분 뒤에 쿠키가 만료됩니다.
+            )
 
-        return response
+            return response
+
+    except InvalidCredentialsException:
+        raise credentials_exception
 
 
 @router.delete("/token")
@@ -222,11 +224,6 @@ def token_get(token: str = Depends(oauth2_scheme)):
     """나의 토큰을 확인하는 API
     토큰 정보를 확인합니다.
     """
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Unauthorized",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         username = get_current_user(token)
 
@@ -243,11 +240,6 @@ def token_refresh(request: Request):
     """토큰을 갱신하는 API
     쿠키에 저장된 정보를 바탕으로 토큰을 갱신합니다.
     """
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Unauthorized",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         refresh_token = request.cookies.get("access_token").split(" ")[1]
 
@@ -286,5 +278,5 @@ def token_refresh(request: Request):
 
     except JWTError:
         raise credentials_exception
-    except ExpiredSignatureError:
+    except:
         raise credentials_exception

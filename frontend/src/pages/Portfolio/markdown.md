@@ -102,7 +102,7 @@ jgbong0306@gmail.com
 
 ### 2023
 
-#### [실시간 동물 행동 인식 시스템](https://github.com/jung-geun/animal-pose-classification) - 2023.03 ~ 2023.09
+#### [실시간 동물 행동 인식 시스템](https://github.com/jung-geun/animal-pose-classification) - 2023.03 ~ 2023.11
 
 => 실시간 영상에서 동물을 인식하여 행동을 분류하는 딥러닝 시스템
 

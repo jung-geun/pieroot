@@ -1,0 +1,10 @@
+{
+  "protocol": "mysql+pymysql",
+  "server_ip": "127.0.0.1",
+  "server_port": 3306,
+  "database": "user",
+  "user": "user",
+  "password": "password",
+  "charset": "utf8mb4",
+  "SECRET_KEY": "SECRET_KEY"
+}

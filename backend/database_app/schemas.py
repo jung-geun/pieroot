@@ -40,6 +40,8 @@ class TokenData(BaseModel):
 class FilePermit(BaseModel):
     id: int
     file: bool
+    size: int
+    unit: str
 
     class Config:
         from_attributes = True
@@ -49,6 +51,8 @@ class FilePermit(BaseModel):
 class FilePermitAdd(BaseModel):
     id: int
     file: bool
+    size: int
+    unit: str
 
     class Config:
         from_attributes = True

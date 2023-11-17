@@ -10,8 +10,6 @@
 
 <Header />
 
-<main />
-
 <Router {routes} />
 
 <Footer />

@@ -75,7 +75,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
 
     # 생성된 유저의 파일 업로드 권한 생성 (기본값: False)
-    db_file_permit = models.FilePermit(id=db_user.id, file=False)
+    db_file_permit = models.FilePermit(id=db_user.id, file=False, size=0, unit="MB")
     db.add(db_file_permit)
     db.commit()
     db.refresh(db_file_permit)

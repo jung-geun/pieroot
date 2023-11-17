@@ -1,6 +1,6 @@
 <script lang="ts">
   import Error from "$components/Error.svelte";
-  import fastapi from "$lib/api";
+  import fastapi from "$lib/ts/api";
   import { access_token, is_login, username } from "$stores/store";
   import { push } from "svelte-spa-router";
 
