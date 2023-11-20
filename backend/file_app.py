@@ -93,8 +93,8 @@ async def post_file_upload(
         if not files:
             raise HTTPException(status_code=400, detail="File is not exist")
 
-        username = get_current_user(token)
-
+        payload = get_current_user(token)
+        username = payload[1]
         if username is None:
             raise credentials_exception
 
@@ -188,8 +188,8 @@ def get_file_list(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        username = get_current_user(token)
-
+        payload = get_current_user(token)
+        username = payload[1]
         if username is None:
             raise credentials_exception
 
@@ -241,7 +241,9 @@ def get_file_download(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        username = get_current_user(token)
+        payload = get_current_user(token)
+
+        username = payload[1]
 
         if username is None:
             raise credentials_exception
@@ -287,7 +289,8 @@ def delete_file(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        username = get_current_user(token)
+        payload = get_current_user(token)
+        username = payload[1]
 
         file_name_encode = file_name.replace(" ", "_")
 

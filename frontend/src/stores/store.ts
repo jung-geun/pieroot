@@ -11,7 +11,8 @@ const persist_storage = (key: any, initValue: any) => {
   return store;
 };
 
+const isDev = process.env.NODE_ENV === "development";
+export const test_url = isDev ? "http://localhost:8000" : "";
 export const access_token = persist_storage("access_token", "");
 export const username = persist_storage("username", "");
 export const is_login = persist_storage("is_login", false);
-export const test_url = "http://localhost:8000";

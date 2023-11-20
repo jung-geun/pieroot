@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta
@@ -67,7 +68,7 @@ def get_db():
         db.close()
 
 
-def create_access_token(username: str, expires_delta: datetime):
+def create_access_token(fingerprint: str, username: str, expires_delta: datetime):
     """access_token을 생성하는 함수
 
     Args:
@@ -77,7 +78,11 @@ def create_access_token(username: str, expires_delta: datetime):
     Returns:
         dict: access_token
     """
-    data = {"sub": username, "exp": datetime.utcnow() + expires_delta}
+    data = {
+        "sub": fingerprint,
+        "name": username,
+        "exp": datetime.utcnow() + expires_delta,
+    }
     access_token = jwt.encode(data, SECRET, algorithm=ALGORITHM)
     return access_token
 
@@ -96,13 +101,53 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     """
     try:
         payload = jwt.decode(token, SECRET, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        fingerprint: str = payload.get("sub")
+        username: str = payload.get("name")
+
         if username is None:
             raise credentials_exception
-        return username
+        return (fingerprint, username)
     except JWTError:
         logger.info(f"JWTError: token decode error")
         raise credentials_exception
+
+
+def get_device_fingerprint(request: Request):
+    """유저의 디바이스 정보를 확인하는 함수
+    유저의 디바이스 정보를 확인하고, sha256으로 암호화하여 반환합니다.
+
+    Args:
+        request (Request): Request 객체
+
+    Returns:
+        str: 유저의 디바이스 정보
+    """
+    try:
+        user_agent = request.headers.get("User-Agent", "")
+        device_type = request.headers.get("Device-Type", "Unknown")
+        operating_system = request.headers.get("Operating-System", "Unknown")
+        screen_resolution = request.headers.get("Screen-Resolution", "Unknown")
+        browser_settings = request.headers.get("Browser-Settings", "Unknown")
+        language_preferences = request.headers.get("Accept-Language", "Unknown")
+        timezone = request.headers.get("Timezone", "Unknown")
+
+        device_fingerprint = {
+            "user_agent": user_agent,
+            "device_type": device_type,
+            "operating_system": operating_system,
+            "screen_resolution": screen_resolution,
+            "browser_settings": browser_settings,
+            "language_preferences": language_preferences,
+            "timezone": timezone,
+        }
+
+        fingerprint = hashlib.sha256(
+            json.dumps(device_fingerprint).encode()
+        ).hexdigest()
+
+        return fingerprint
+    except:
+        return None
 
 
 @router.post("/create")
@@ -145,6 +190,7 @@ def create_user(
 
 @router.post("/token")
 def token_login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
@@ -189,8 +235,13 @@ def token_login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         else:
+            request_fingerprint = get_device_fingerprint(request)
             access_token_expires = timedelta(minutes=30)
-            access_token = create_access_token(mail, access_token_expires)
+            access_token = create_access_token(
+                request_fingerprint,
+                mail,
+                access_token_expires,
+            )
 
             response = JSONResponse(
                 {
@@ -203,6 +254,7 @@ def token_login(
 
             refresh_expires = timedelta(days=30)
             refresh_token = create_access_token(
+                request_fingerprint,
                 mail,
                 refresh_expires,
             )
@@ -239,8 +291,8 @@ def token_get(token: str = Depends(oauth2_scheme)):
     토큰 정보를 확인합니다.
     """
     try:
-        username = get_current_user(token)
-
+        payload = get_current_user(token)
+        username = payload[1]
         if username is None:
             logger.info(f"InvalidCredentialsException: {username}")
             raise credentials_exception
@@ -261,10 +313,18 @@ def token_refresh(
     try:
         refresh_token = request.cookies.get("access_token").split(" ")[1]
 
-        username = get_current_user(refresh_token)
+        payload = get_current_user(refresh_token)
+        store_fingerprint = payload[0]
+        username = payload[1]
+        request_fingerprint = get_device_fingerprint(request)
+
+        if store_fingerprint != request_fingerprint:
+            logger.info(f"InvalidCredentialsException: {username}")
+            raise credentials_exception
 
         access_token_expires = timedelta(minutes=30)
         access_token = create_access_token(
+            request_fingerprint,
             username,
             access_token_expires,
         )
@@ -280,6 +340,7 @@ def token_refresh(
 
         refresh_expires = timedelta(days=30)
         refresh_token = create_access_token(
+            request_fingerprint,
             username,
             refresh_expires,
         )
