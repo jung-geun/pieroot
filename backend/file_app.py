@@ -3,8 +3,7 @@ import os
 import unicodedata
 from typing import IO, Annotated, List
 from urllib.parse import quote
-from natsort import natsorted
-
+import re
 from database_app import (
     DataBaseApp,
     User,
@@ -18,7 +17,17 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
+from natsort import natsorted
 from sqlalchemy.orm import Session
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+file_handler = logging.FileHandler("logs/router_file_info.log")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 file_router = APIRouter(
     prefix="/file",
@@ -128,8 +137,23 @@ async def post_file_upload(
     return data
 
 
-def file_sort(path, start, end, sort, order):
-    file_list = natsorted(os.listdir(path), reverse=False if sort == "asc" else True)
+def file_sort(path, start, end, sort, order, search):
+    file_list_tmp = natsorted(
+        os.listdir(path), reverse=False if sort == "asc" else True
+    )
+
+    if search != "":
+        try:
+            re.compile(search)
+        except re.error:
+            raise HTTPException(status_code=402, detail="검색어가 잘못되었습니다.")
+
+        file_list = [file for file in file_list_tmp if re.search(search, file)]
+
+        if not file_list:
+            raise HTTPException(status_code=402, detail="검색 결과가 없습니다.")
+    else:
+        file_list = file_list_tmp
 
     if order == "name":
         file_list = file_list[start:end]
@@ -149,6 +173,7 @@ def get_file_list(
     end: int = 10,
     sort: str = "asc",
     order: str = "name",
+    search: str = "",
     token: str = Depends(oauth2_scheme),
 ):
     """
@@ -174,7 +199,9 @@ def get_file_list(
             os.makedirs(file_path, exist_ok=True)
 
         file_count = len(os.listdir(file_path))
-        file_list = file_sort(file_path, start, end, sort, order)
+        file_list = file_sort(file_path, start, end, sort, order, search)
+        if search != "":
+            file_count = len(file_list)
 
         file_info = []
         for index, file in enumerate(file_list):
@@ -202,7 +229,7 @@ def get_file_list(
         raise credentials_exception
 
 
-@file_router.get("/download/{file_name}")
+@file_router.get("/download")
 def get_file_download(
     file_name: str,
     request: Request,
@@ -221,7 +248,7 @@ def get_file_download(
 
         file_name = file_name.replace(" ", "_")
 
-        download_path = os.path.join("./tmp", username, file_name)
+        download_path = os.path.join("../drive", username, file_name)
 
         file_exist = os.path.exists(download_path)
         if not file_exist:

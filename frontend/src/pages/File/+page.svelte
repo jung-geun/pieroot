@@ -14,6 +14,7 @@
   let page_size = 10;
   let sort: string = "asc";
   let sortBy: string = "name";
+  let search: string = "";
   let file_count: number = 0;
 
   onMount(() => {
@@ -32,6 +33,8 @@
   async function get_file_list() {
     if (currentPage < 1) {
       currentPage = 1;
+    } else if (currentPage * page_size > file_count && file_count != 0) {
+      currentPage = Math.ceil(file_count / page_size);
     }
 
     let start = (currentPage - 1) * page_size;
@@ -42,6 +45,7 @@
       end: end,
       sort: sort,
       order: sortBy,
+      search: search,
     };
 
     fastapi(
@@ -62,31 +66,36 @@
     event.preventDefault();
     loading = true;
     let url = "/file/upload";
-    let formData = new FormData();
+    let count = 0;
+    let lose = 0;
     for (let i = 0; i < files.length; i++) {
+      let formData = new FormData();
       formData.append("files", files[i]);
+      fastapi(
+        "file_upload",
+        url,
+        formData,
+        () => {
+          count++;
+          error = { detail: count + "개 중 " + lose + "개 업로드 실패" };
+        },
+        (json_error: any) => {
+          lose++;
+          count++;
+          error = { detail: count + "개 중 " + lose + "개 업로드 실패" };
+        }
+      );
     }
-    fastapi(
-      "file_upload",
-      url,
-      formData,
-      (json: any) => {
-        loading = false;
-        console.log(json.detail);
-        error = { detail: json.detail };
-        get_file_list();
-      },
-      (json_error: any) => {
-        loading = false;
-        console.log(json_error);
-        error = json_error;
-      }
-    );
+    setTimeout(() => {
+      loading = false;
+      get_file_list();
+    }, 5000);
   }
 
   function file_download(event: Event, file_name: string) {
     event.preventDefault();
-    let url = test_url + "/file/download/" + file_name;
+    let params = { file_name: file_name };
+    let url = test_url + "/file/download?" + new URLSearchParams(params);
     let option = {
       method: "get",
       headers: {
@@ -102,14 +111,15 @@
 
           a.href = fileUrl;
           a.download = file_name;
-          console.log(file_name);
 
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
         });
       } else {
-        error = { detail: "파일을 다운로드하는데 실패했습니다" };
+        response.json().then((json) => {
+          error = { detail: json.detail };
+        });
       }
     });
   }
@@ -127,18 +137,43 @@
         param,
         (json: any) => {
           loading = false;
-          console.log(json.detail);
           error = { detail: json.detail };
           get_file_list();
         },
         (json_error: any) => {
           loading = false;
-          console.log(json_error);
           error = json_error;
         }
       );
     }
   }
+
+  let searchQuery = "";
+
+  function handleSearch() {
+    currentPage = 1;
+    search = searchQuery;
+    get_file_list();
+  }
+
+  let timeoutId = setTimeout(() => {}, 0);
+
+  function handleInputChange() {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(handleSearch, 1000);
+  }
+
+  onMount(() => {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "/") {
+        event.preventDefault();
+        const searchInput = document.getElementById("search-input");
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    });
+  });
 
   $: if (error.detail === "Unauthorized") {
     push("/logout");
@@ -149,8 +184,6 @@
       files = [];
     }, 5000);
   }
-
-  // $: console.log(loading);
 </script>
 
 <main>
@@ -198,31 +231,83 @@
       </button>
     </form>
     <br />
-    <div class="whitespace-normal">
-      <ul role="list">
-        {#await get_file_list()}
-          <li>리스트를 불러오는 중 입니다...</li>
-        {:then}
-          {#each file_list as info, key}
-            <li
-              class="border-none hover:bg-slate-600 w-104 hover:border-solid hover:border-sky-50 rounded-md py-0.3 px-2 grid grid-cols-5 gap-15"
+    <div class="whitespace-normal w-3/4 md:w-5/6">
+      <table class="table-auto w-full">
+        <thead>
+          <tr
+            class="border border-solid border-sky-50
+        rounded-md py-0.3 px-2 grid grid-cols-5 gap-15
+        bg-slate-600"
+          >
+            <th
+              class="col-span-3 text-ellipsis cursor-pointer text-left hover:bg-slate-500 w-104 hover:border-solid hover:border-sky-50 rounded-md py-0.3 px-2"
+              on:click={() => {
+                sort = sort == "asc" ? "desc" : "asc";
+                sortBy = "name";
+                get_file_list();
+              }}
             >
-              <a
-                href="/#"
-                class="col-span-3 text-ellipsis overflow-hidden"
-                on:click={file_download(event, info["name"])}>{info["name"]}</a
+              파일 이름 <span>
+                {#if sortBy == "name"}{#if sort == "asc"}▲{:else}▼{/if}{/if}
+              </span>
+            </th>
+            <th
+              class="text-right cursor-pointer hover:bg-slate-500 w-104 hover:border-solid hover:border-sky-50 rounded-md py-0.3 px-2"
+              on:click={() => {
+                sort = sort == "asc" ? "desc" : "asc";
+                sortBy = "size";
+                get_file_list();
+              }}
+            >
+              크기
+              <span>
+                {#if sortBy == "size"}{#if sort == "asc"}▲{:else}▼{/if}{/if}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {#await get_file_list()}
+            <tr>리스트를 불러오는 중 입니다...</tr>
+          {:then}
+            {#each file_list as info, key}
+              <tr
+                class="hover:bg-slate-600 w-104 hover:border-solid hover:border-sky-50 rounded-md py-0.3 px-2 grid grid-cols-5 gap-15"
               >
-              <p class="text-right">{info["size"]}</p>
-              <button
-                class="border-collapse"
-                on:click={file_delete(info["name"])}>제거</button
-              >
-            </li>
-          {/each}
-        {:catch error}
-          <li>파일을 불러오는데 실패했습니다</li>
-        {/await}
-      </ul>
+                <td
+                  class="col-span-3 text-ellipsis overflow-hidden hover:text-white hover:underline ml-0 mr-auto"
+                >
+                  <a href="/#" on:click={file_download(event, info["name"])}
+                    >{info["name"]}</a
+                  >
+                </td>
+                <td class="text-right">
+                  <p>{info["size"]}</p>
+                </td>
+                <td class=" hover:bg-slate-500 rounded-md py-0.3 px-2 mx-auto">
+                  <button on:click={file_delete(info["name"])}>제거</button>
+                </td>
+              </tr>
+            {/each}
+          {:catch error}
+            <tr>파일을 불러오는데 실패했습니다</tr>
+          {/await}
+        </tbody>
+      </table>
+      {#if file_list.length == 0}
+        <div class="text-center">파일이 없습니다</div>
+      {:else}
+        <div class="mt-4 flex justify-end items-center">
+          <input
+            id="search-input"
+            type="text"
+            bind:value={searchQuery}
+            placeholder="검색어를 입력하세요"
+            class="px-4 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-black"
+            on:input={handleInputChange}
+          />
+        </div>
+      {/if}
     </div>
 
     <div class="mt-4 flex justify-between items-center">
@@ -241,8 +326,7 @@
           >
         </button>
         <span class="text-indigo-100">
-          {currentPage * page_size - page_size + 1} - {currentPage * page_size -
-            page_size +
+          {(currentPage - 1) * page_size + 1} - {(currentPage - 1) * page_size +
             file_list.length} of
           {file_count} files
         </span>
@@ -260,19 +344,6 @@
             >Next</span
           ></button
         >
-      </div>
-      <div>
-        <label for="sort">Sort by:</label>
-        <select
-          id="sort"
-          class="text-black border p-2 rounded border-black"
-          bind:value={sortBy}
-          on:change={get_file_list}
-        >
-          <option value="name">Name</option>
-          <option value="size">Size</option>
-          <!-- Add more sorting options if needed -->
-        </select>
       </div>
     </div>
   </div>

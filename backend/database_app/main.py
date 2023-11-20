@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import IO, Annotated, List
 
@@ -21,6 +22,15 @@ from starlette.responses import FileResponse, HTMLResponse, JSONResponse
 
 from . import crud, models, schemas
 from .database import DataBase
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+file_handler = logging.FileHandler("logs/router_user_info.log")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 with open("./env.json", "r") as f:
     SECRET = json.load(f)["SECRET_KEY"]
@@ -91,8 +101,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
         return username
     except JWTError:
-        raise credentials_exception
-    except ExpiredSignatureError:
+        logger.info(f"JWTError: token decode error")
         raise credentials_exception
 
 
@@ -130,6 +139,7 @@ def create_user(
             return JSONResponse({"detail": "회원가입이 완료되었습니다."}, status_code=200)
 
     except InvalidCredentialsException:
+        logger.error(f"InvalidCredentialsException: {mail}")
         raise credentials_exception
 
 
@@ -153,12 +163,14 @@ def token_login(
     """
     try:
         if not form_data.username:
+            logger.info(f"InvalidCredentialsException: mail > {form_data.username}")
             raise HTTPException(
                 status_code=401,
                 detail="mail을 입력해주세요.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         if not form_data.password:
+            logger.info(f"InvalidCredentialsException: password > ####")
             raise HTTPException(
                 status_code=401,
                 detail="비밀번호를 입력해주세요.",
@@ -170,6 +182,7 @@ def token_login(
         result = crud.authenticate_user(db, mail, password)
 
         if result["cmd"] == "error":
+            logger.info(f"InvalidCredentialsException: {mail}")
             raise HTTPException(
                 status_code=401,
                 detail="아이디 또는 비밀번호가 일치하지 않습니다.",
@@ -205,6 +218,7 @@ def token_login(
             return response
 
     except InvalidCredentialsException:
+        logger.info(f"InvalidCredentialsException: {mail}")
         raise credentials_exception
 
 
@@ -228,15 +242,19 @@ def token_get(token: str = Depends(oauth2_scheme)):
         username = get_current_user(token)
 
         if username is None:
+            logger.info(f"InvalidCredentialsException: {username}")
             raise credentials_exception
         else:
             return JSONResponse({"username": username}, status_code=200)
     except:
+        logger.info(f"InvalidCredentialsException: {username}")
         raise credentials_exception
 
 
 @router.patch("/token")
-def token_refresh(request: Request):
+def token_refresh(
+    request: Request,
+):
     """토큰을 갱신하는 API
     쿠키에 저장된 정보를 바탕으로 토큰을 갱신합니다.
     """
@@ -277,6 +295,8 @@ def token_refresh(request: Request):
         return response
 
     except JWTError:
+        logger.info(f"token refresh error")
         raise credentials_exception
     except:
+        logger.info("token refresh error")
         raise credentials_exception

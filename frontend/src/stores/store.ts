@@ -14,4 +14,4 @@ const persist_storage = (key: any, initValue: any) => {
 export const access_token = persist_storage("access_token", "");
 export const username = persist_storage("username", "");
 export const is_login = persist_storage("is_login", false);
-export const test_url = "";
+export const test_url = "http://localhost:8000";

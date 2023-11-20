@@ -17,17 +17,28 @@ const fastapi = async (
   let _url = test_url + url;
 
   if (method === "get") {
-    _url += "?" + new URLSearchParams(params);
+    if (params && Object.keys(params).length > 0) {
+      _url += "?" + new URLSearchParams(params);
+    }
     body = null;
   }
 
   if (method === "delete") {
-    _url += "?" + new URLSearchParams(params);
+    if (params && Object.keys(params).length > 0) {
+      _url += "?" + new URLSearchParams(params);
+    }
     body = null;
   }
 
   if (method === "post"){
     body = params;
+  }
+
+  if (method === "patch"){
+    if (params && Object.keys(params).length > 0) {
+      _url += "?" + new URLSearchParams(params);
+    }
+    body = null;
   }
 
   if (operation === "login") {

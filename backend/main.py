@@ -1,27 +1,11 @@
 import json
-import logging
-import os
-from typing import IO, Annotated, List
 
 from database_app import DataBaseApp, init_env
-from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
-from fastapi.exceptions import HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, FastAPI
 from file_app import file_router
-from jose import JWTError, jwt
-from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse
+from starlette.responses import FileResponse
 from starlette.staticfiles import StaticFiles
-
-# logger setting
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-file_handler = logging.FileHandler("logs/router_info.log")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 # env setting
 with open("./env.json", "r") as f:
