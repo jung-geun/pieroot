@@ -32,7 +32,7 @@ Base = declarative_base()
 
 class DataBase:
     def __init__(self):
-        self.engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+        self.engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)
 
     def get_session(self):
         SessionMaker = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)

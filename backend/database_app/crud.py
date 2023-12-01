@@ -28,18 +28,18 @@ def encrypt_password(password, time):
 
     except Exception as e:
         # print("Exception > ", e)
-        return {"cmd": "error", "msg": "비밀번호 암호화 중 오류가 발생했습니다."}
+        return {"cmd": "error", "detail": "비밀번호 암호화 중 오류가 발생했습니다."}
 
 
 def hash_check(password, hash_password):
     try:
         ph = PasswordHasher()
         if not ph.verify(hash_password, password.encode("utf-8")):
-            return {"cmd": "error", "msg": "비밀번호가 일치하지 않습니다."}
+            return {"cmd": "error", "detail": "비밀번호가 일치하지 않습니다."}
         else:
-            return {"cmd": "success", "msg": "비밀번호가 일치합니다."}
+            return {"cmd": "success", "detail": "비밀번호가 일치합니다."}
     except VerifyMismatchError as e:
-        return {"cmd": "error", "msg": "비밀번호가 일치하지 않습니다."}
+        return {"cmd": "error", "detail": "비밀번호가 일치하지 않습니다."}
 
 
 def get_user(db: Session, mail: str):
@@ -66,7 +66,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     # print(register_date)
     hash_passwd = encrypt_password(user.password, register_date)
     if hash_passwd["cmd"] == "error":
-        return {"cmd": "error", "msg": hash_passwd["msg"]}
+        return {"cmd": "error", "detail": hash_passwd["detail"]}
     db_user = models.User(
         mail=user.mail, password=hash_passwd["hash_passwd"], sign_date=register_date
     )
@@ -74,7 +74,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.commit()
     db.refresh(db_user)
 
-    result = {"cmd": "success", "msg": "유저 생성에 성공했습니다."}
+    result = {"cmd": "success", "detail": "유저 생성에 성공했습니다."}
     return result
 
 
@@ -82,12 +82,12 @@ def authenticate_user(db: Session, mail: str, password: str):
     user = get_user(db, mail=mail)
 
     if not user:
-        return {"cmd": "error", "msg": "해당 유저가 존재하지 않습니다."}
+        return {"cmd": "error", "detail": "해당 유저가 존재하지 않습니다."}
     result = hash_check(password, user.password)
     if result["cmd"] == "error":
-        return {"cmd": "error", "msg": "비밀번호가 일치하지 않습니다."}
+        return {"cmd": "error", "detail": "비밀번호가 일치하지 않습니다."}
     else:
-        return {"cmd": "success", "msg": "로그인에 성공했습니다."}
+        return {"cmd": "success", "detail": "로그인에 성공했습니다."}
 
 
 def get_file_permit(db: Session, id: int):

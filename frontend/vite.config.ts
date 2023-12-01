@@ -1,6 +1,7 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import path from "path";
 import { defineConfig } from "vite";
+import fs from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -12,6 +13,12 @@ export default defineConfig({
       $components: path.resolve("./src/components"),
       $stores: path.resolve("./src/stores"),
       $assets: path.resolve("./src/assets"),
+    },
+  },
+  server: {
+    https: {
+      key: fs.readFileSync("./cert/key.pem"),
+      cert: fs.readFileSync("./cert/cert.pem"),
     },
   },
 });

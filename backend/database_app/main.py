@@ -2,24 +2,13 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import IO, Annotated, List
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    FastAPI,
-    File,
-    HTTPException,
-    Request,
-    Response,
-    UploadFile,
-)
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi_login.exceptions import InvalidCredentialsException
 from jose import ExpiredSignatureError, JWTError, jwt
 from sqlalchemy.orm import Session
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse
+from starlette.responses import JSONResponse
 
 from . import crud, models, schemas
 from .database import DataBase
@@ -68,7 +57,11 @@ def get_db():
         db.close()
 
 
-def create_access_token(fingerprint: str, username: str, expires_delta: datetime):
+def create_access_token(
+    fingerprint: str,
+    username: str,
+    expires_delta: datetime,
+):
     """access_token을 생성하는 함수
 
     Args:
@@ -104,11 +97,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         fingerprint: str = payload.get("sub")
         username: str = payload.get("name")
 
-        if username is None:
+        if username is None or fingerprint is None:
             raise credentials_exception
-        return (fingerprint, username)
+
+        return {"fingerprint": fingerprint, "username": username, "token": token}
+    except ExpiredSignatureError:
+        raise credentials_exception
     except JWTError:
-        logger.info(f"JWTError: token decode error")
         raise credentials_exception
 
 
@@ -123,22 +118,18 @@ def get_device_fingerprint(request: Request):
         str: 유저의 디바이스 정보
     """
     try:
-        user_agent = request.headers.get("User-Agent", "")
-        device_type = request.headers.get("Device-Type", "Unknown")
-        operating_system = request.headers.get("Operating-System", "Unknown")
-        screen_resolution = request.headers.get("Screen-Resolution", "Unknown")
-        browser_settings = request.headers.get("Browser-Settings", "Unknown")
         language_preferences = request.headers.get("Accept-Language", "Unknown")
-        timezone = request.headers.get("Timezone", "Unknown")
+        screen_resolution = request.headers.get("sec-ch-ua", "Unknown")
+        mobile = request.headers.get("sec-ch-ua-mobile", "Unknown")
+        platform = request.headers.get("sec-ch-ua-platform", "Unknown")
+        user_agent = request.headers.get("User-Agent", "")
 
         device_fingerprint = {
-            "user_agent": user_agent,
-            "device_type": device_type,
-            "operating_system": operating_system,
-            "screen_resolution": screen_resolution,
-            "browser_settings": browser_settings,
             "language_preferences": language_preferences,
-            "timezone": timezone,
+            "screen_resolution": screen_resolution,
+            "mobile": mobile,
+            "platform": platform,
+            "user_agent": user_agent,
         }
 
         fingerprint = hashlib.sha256(
@@ -177,14 +168,14 @@ def create_user(
 
         if result["cmd"] == "error":
             raise HTTPException(
-                status_code=402,
+                status_code=400,
                 detail=result["msg"],
             )
         else:
+            logger.info(f"create_user: {mail}")
             return JSONResponse({"detail": "회원가입이 완료되었습니다."}, status_code=200)
 
-    except InvalidCredentialsException:
-        logger.error(f"InvalidCredentialsException: {mail}")
+    except Exception as e:
         raise credentials_exception
 
 
@@ -208,15 +199,16 @@ def token_login(
         JSONResponse: _description_
     """
     try:
+        user_ip = request.client.host
         if not form_data.username:
-            logger.info(f"InvalidCredentialsException: mail > {form_data.username}")
+            logger.info(f"InvalidCredentialsException: mail > {form_data.username} to {user_ip}")
             raise HTTPException(
                 status_code=401,
                 detail="mail을 입력해주세요.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        if not form_data.password:
-            logger.info(f"InvalidCredentialsException: password > ####")
+        elif not form_data.password:
+            logger.info(f"InvalidCredentialsException: password > #### to {user_ip}")
             raise HTTPException(
                 status_code=401,
                 detail="비밀번호를 입력해주세요.",
@@ -228,7 +220,7 @@ def token_login(
         result = crud.authenticate_user(db, mail, password)
 
         if result["cmd"] == "error":
-            logger.info(f"InvalidCredentialsException: {mail}")
+            print(result)
             raise HTTPException(
                 status_code=401,
                 detail="아이디 또는 비밀번호가 일치하지 않습니다.",
@@ -236,6 +228,7 @@ def token_login(
             )
         else:
             request_fingerprint = get_device_fingerprint(request)
+
             access_token_expires = timedelta(minutes=30)
             access_token = create_access_token(
                 request_fingerprint,
@@ -260,7 +253,7 @@ def token_login(
             )
             response.set_cookie(
                 key="access_token",  # 쿠키의 이름을 access_token으로 합니다.
-                value=f"Bearer {refresh_token}",  # access_token을 쿠키에 저장합니다.
+                value=refresh_token,  # access_token을 쿠키에 저장합니다.
                 httponly=True,  # javascript에서 쿠키를 접근할 수 없습니다.
                 secure=True,  # https에서만 쿠키를 전송합니다.
                 samesite="lax",  # csrf 공격 방지
@@ -269,8 +262,8 @@ def token_login(
 
             return response
 
-    except InvalidCredentialsException:
-        logger.info(f"InvalidCredentialsException: {mail}")
+    except Exception as e:
+        logger.info(f"login error > : {mail} to {user_ip}")
         raise credentials_exception
 
 
@@ -286,24 +279,18 @@ def token_delete():
 
 
 @router.get("/token")
-def token_get(token: str = Depends(oauth2_scheme)):
+def token_get(payload: str = Depends(get_current_user)):
     """나의 토큰을 확인하는 API
     토큰 정보를 확인합니다.
     """
     try:
-        payload = get_current_user(token)
-        username = payload[1]
-        if username is None:
-            logger.info(f"InvalidCredentialsException: {username}")
-            raise credentials_exception
-        else:
-            return JSONResponse({"username": username}, status_code=200)
+        username = payload["username"]
+        return JSONResponse({"username": username}, status_code=200)
     except:
-        logger.info(f"InvalidCredentialsException: {username}")
         raise credentials_exception
 
 
-@router.patch("/token")
+@router.put("/token")
 def token_refresh(
     request: Request,
 ):
@@ -311,15 +298,19 @@ def token_refresh(
     쿠키에 저장된 정보를 바탕으로 토큰을 갱신합니다.
     """
     try:
-        refresh_token = request.cookies.get("access_token").split(" ")[1]
+        if request.cookies.get("access_token") is None:
+            raise credentials_exception
+
+        refresh_token = request.cookies.get("access_token")
 
         payload = get_current_user(refresh_token)
-        store_fingerprint = payload[0]
-        username = payload[1]
+
+        store_fingerprint, username = payload["fingerprint"], payload["username"]
+
         request_fingerprint = get_device_fingerprint(request)
 
         if store_fingerprint != request_fingerprint:
-            logger.info(f"InvalidCredentialsException: {username}")
+            logger.info(f"token refresh error > token not match : {username}")
             raise credentials_exception
 
         access_token_expires = timedelta(minutes=30)
@@ -346,7 +337,7 @@ def token_refresh(
         )
         response.set_cookie(
             key="access_token",  # 쿠키의 이름을 access_token으로 합니다.
-            value=f"Bearer {refresh_token}",  # access_token을 쿠키에 저장합니다.
+            value=refresh_token,  # access_token을 쿠키에 저장합니다.
             httponly=True,  # javascript에서 쿠키를 접근할 수 없습니다.
             secure=True,  # https에서만 쿠키를 전송합니다.
             samesite="lax",  # csrf 공격 방지
@@ -355,9 +346,6 @@ def token_refresh(
 
         return response
 
-    except JWTError:
-        logger.info(f"token refresh error")
-        raise credentials_exception
     except:
         logger.info("token refresh error")
         raise credentials_exception

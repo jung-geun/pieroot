@@ -37,3 +37,10 @@ class File(Base):
     unit = Column(String(2))
     # id 는 user 테이블의 id를 참조합니다.
     # user = relationship("User", back_populates="file_permit")
+
+
+class Chat(Base):
+    __tablename__ = "chat"
+
+    user = Column(Integer, ForeignKey("user.id"), index=True, primary_key=True)
+    content = Column(String(200))

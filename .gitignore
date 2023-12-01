@@ -189,3 +189,4 @@ logs/
 backend/tmp/
 backend/env.json
 drive
+cert/

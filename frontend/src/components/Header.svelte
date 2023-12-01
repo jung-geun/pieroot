@@ -1,203 +1,117 @@
 <script lang="ts">
-  import fastapi from "$lib/ts/api";
-  import { access_token, is_login, username } from "$stores/store";
-  import { link, location, push } from "svelte-spa-router";
+  import { is_login } from "$stores/store";
+  import { link, location } from "svelte-spa-router";
   let showMenu = false;
 
   function showMenuClick() {
     showMenu = !showMenu;
   }
-
-  $: if ($location === "/file") {
-    if ($is_login === false || $access_token === "" || $username === "") {
-      push("/logout");
-    } else {
-      fastapi(
-        "get",
-        "/users/token",
-        {},
-        () => {},
-        () => {
-          fastapi(
-            "patch",
-            "/users/token",
-            {},
-            (json: any) => {
-              access_token.set(json.access_token);
-              username.set(json.username);
-              is_login.set(true);
-            },
-            () => {
-              push("/logout");
-            }
-          );
-        }
-      );
-    }
-  }
-  $: if ($location === "/logout") {
-    access_token.set("");
-    username.set("");
-    is_login.set(false);
-    fastapi(
-      "delete",
-      "/users/token",
-      {},
-      () => {},
-      () => {}
-    );
-    push("/login");
-  }
 </script>
 
 <nav class="bg-gray-400 dark:bg-gray-800 rounded-t-lg">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="flex h-16 items-center justify-between">
-      <div class="flex items-center">
-        <div class="flex-shrink-0 font-bold text-lg">
-          <a href="/" use:link>
-            <p>PieRoot</p>
-          </a>
-        </div>
-        <div class="hidden md:block">
-          <div class="ml-10 flex items-baseline space-x-4">
-            <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
-            {#if $location === "/"}
-              <a
-                href="/"
-                use:link
-                class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >Home
-              </a>
-            {:else}
-              <a
-                href="/"
-                use:link
-                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >Home
-              </a>
-            {/if}
+  <div class="mx-auto px-4 md:px-6 lg:px-8">
+    <div class="h-16 flex items-center justify-between">
+      <a href="/" use:link class="flex-shrink-0 font-bold text-lg p-3.5">
+        <p>PieRoot</p>
+      </a>
 
-            {#if $location === "/portfolio"}
-              <a
-                href="/portfolio"
-                use:link
-                class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >Portfolio
-              </a>
-            {:else}
-              <a
-                href="/portfolio"
-                use:link
-                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >Portfolio
-              </a>
-            {/if}
-
-            {#if $location === "/gallery"}
-              <a
-                href="/gallery"
-                use:link
-                class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >Gallery
-              </a>
-            {:else}
-              <a
-                href="/gallery"
-                use:link
-                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >Gallery
-              </a>
-            {/if}
-
-            {#if $is_login == false}
-              {#if $location === "/login"}
-                <a
-                  href="/login"
-                  use:link
-                  class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                  >Login
-                </a>
-              {:else}
-                <a
-                  href="/login"
-                  use:link
-                  class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                  >Login
-                </a>
-              {/if}
-            {/if}
-
-            {#if $is_login}
-              {#if $location == "/file"}
-                <a
-                  href="/file"
-                  use:link
-                  class="bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                  >File
-                </a>
-              {:else}
-                <a
-                  href="/file"
-                  use:link
-                  class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-                >
-                  File
-                </a>
-              {/if}
-
-              <a
-                href="/logout"
-                use:link
-                class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-              >
-                Logout
-              </a>
-            {/if}
-          </div>
-        </div>
-
-        <div class="mr-2 flex md:hidden">
-          <!-- Mobile menu button -->
-          <button
-            type="button"
-            class="relative inline-flex items-center justify-center rounded-md bg-gray-800 p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
-            on:click={showMenuClick}
+      <!-- Mobile menu button -->
+      <div class="m-2 flex">
+        <button
+          type="button"
+          class="relative inline-flex items-center justify-center rounded-md bg-gray-800 p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 md:hidden"
+          on:click={showMenuClick}
+        >
+          <!-- Menu open: "hidden", Menu closed: "block" -->
+          <svg
+            class="h-6 w-6 {showMenu ? 'hidden' : 'block'}"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            aria-hidden="true"
           >
-            <span class="absolute -inset-0.5" />
-            <span class="sr-only">Open main menu</span>
-            <!-- Menu open: "hidden", Menu closed: "block" -->
-            <svg
-              class="block h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-              />
-            </svg>
-            <!-- Menu open: "block", Menu closed: "hidden" -->
-            <svg
-              class="hidden h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+            />
+          </svg>
+          <!-- Menu open: "block", Menu closed: "hidden" -->
+          <svg
+            class="h-6 w-6 {showMenu ? 'block' : 'hidden'}"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div class="items-baseline space-x-4 mx-auto hidden md:flex">
+        <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
+        <a
+          href="/"
+          use:link
+          class="
+              {$location === '/'
+            ? 'bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium'
+            : 'text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium'}"
+          >Home
+        </a>
+
+        <a
+          href="/portfolio"
+          use:link
+          class={$location === "/portfolio"
+            ? "bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+            : "text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"}
+          >Portfolio
+        </a>
+
+        <a
+          href="/gallery"
+          use:link
+          class={$location === "/gallery"
+            ? "bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+            : "text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"}
+          >Gallery
+        </a>
+
+        {#if $is_login == false}
+          <a
+            href="/login"
+            use:link
+            class={$location === "/login"
+              ? "bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+              : "text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"}
+            >Login
+          </a>
+        {:else}
+          <a
+            href="/file"
+            use:link
+            class={$location === "/file"
+              ? "bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+              : "text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"}
+            >File
+          </a>
+
+          <a
+            href="/logout"
+            use:link
+            class="text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
+          >
+            Logout
+          </a>
+        {/if}
       </div>
     </div>
 
@@ -209,89 +123,53 @@
           : 'hidden'}"
       >
         <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
-        {#if $location === "/"}
-          <a
-            href="/"
-            use:link
-            class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Home
-          </a>
-        {:else}
-          <a
-            href="/"
-            use:link
-            class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Home
-          </a>
-        {/if}
 
-        {#if $location === "/portfolio"}
-          <a
-            href="/portfolio"
-            use:link
-            class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Portfolio
-          </a>
-        {:else}
-          <a
-            href="/portfolio"
-            use:link
-            class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Portfolio
-          </a>
-        {/if}
+        <a
+          href="/"
+          use:link
+          class={$location === "/"
+            ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+            : "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"}
+          >Home
+        </a>
 
-        {#if $location === "/gallery"}
-          <a
-            href="/gallery"
-            use:link
-            class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Gallery
-          </a>
-        {:else}
-          <a
-            href="/gallery"
-            use:link
-            class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >Gallery
-          </a>
-        {/if}
+        <a
+          href="/portfolio"
+          use:link
+          class={$location === "/portfolio"
+            ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+            : "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"}
+          >Portfolio
+        </a>
+
+        <a
+          href="/gallery"
+          use:link
+          class={$location === "/gallery"
+            ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+            : "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"}
+          >Gallery
+        </a>
 
         {#if $is_login == false}
-          {#if $location === "/login"}
-            <a
-              href="/login"
-              use:link
-              class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-              >Login
-            </a>
-          {:else}
-            <a
-              href="/login"
-              use:link
-              class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-              >Login
-            </a>
-          {/if}
-        {/if}
+          <a
+            href="/login"
+            use:link
+            class={$location === "/login"
+              ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+              : "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"}
+            >Login
+          </a>
+        {:else}
+          <a
+            href="/file"
+            use:link
+            class={$location === "/file"
+              ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+              : "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"}
+            >File
+          </a>
 
-        {#if $is_login}
-          {#if $location == "/file"}
-            <a
-              href="/file"
-              use:link
-              class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-              >File
-            </a>
-          {:else}
-            <a
-              href="/file"
-              use:link
-              class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >
-              File
-            </a>
-          {/if}
           <a
             href="/logout"
             use:link
@@ -306,7 +184,7 @@
 </nav>
 <div class="bg-white rounded-b-lg shadow-2xl">
   <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 px-3">
       {#if $location === "/"}
         Home
       {:else}

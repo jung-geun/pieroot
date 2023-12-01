@@ -1,9 +1,11 @@
 import json
+import logging
 import os
-import unicodedata
-from typing import IO, Annotated, List
-from urllib.parse import quote
 import re
+import unicodedata
+from typing import IO, Annotated, Dict, List
+from urllib.parse import quote
+
 from database_app import (
     DataBaseApp,
     User,
@@ -12,14 +14,23 @@ from database_app import (
     get_db,
     oauth2_scheme,
 )
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from natsort import natsorted
 from sqlalchemy.orm import Session
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -35,85 +46,53 @@ file_router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-
-async def save_upload_file_tmp(file: IO, path: str = "./tmp/", max_size: int = 1024):
-    try:
-        if not os.path.exists(path):
-            os.makedirs(path, exist_ok=True)
-
-        file_name = file.filename
-
-        file_name_nfc = unicodedata.normalize("NFC", file_name)
-
-        file_name_encode = file_name_nfc.replace(" ", "_")
-
-        file_path = os.path.join(path, file_name_encode)
-        file_tmp = await file.read()
-        file_size = len(file_tmp)
-
-        if file_size > max_size:
-            raise HTTPException(status_code=400, detail="File size is too large")
-
-        if os.path.exists(file_path):
-            raise HTTPException(status_code=400, detail="File is already exist")
-
-        with open(file_path, "wb") as f:
-            f.write(file_tmp)
-        file_path = {"cmd": "success", "detail": file_path}
-    except Exception as e:
-        file_path = {"cmd": "error", "detail": e}
-
-    finally:
-        return file_path
+credentials_exception = HTTPException(
+    status_code=401,
+    detail="Unauthorized",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
-@file_router.post("/upload")
-async def post_file_upload(
-    files: List[UploadFile] = File(...),
-    token: str = Depends(oauth2_scheme),
+websocket_list: Dict[str, WebSocket] = {}
+
+
+@file_router.websocket("/ws/upload")
+async def websocket_endpoint(
+    websocket: WebSocket,
     db: Session = Depends(get_db),
 ):
-    """
-    # File 업로드 API
-    파일 업로드 및 저장된 파일의 정보를 반환
+    await websocket.accept()
 
-    Args:
-        request (Request): Request 객체
-        files (List[UploadFile], optional): 파일의 객체. Defaults to File(...).
-
-    Returns:
-        str: 파일 업로드 결과를 json 형태로 반환
-    """
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Unauthorized",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        if not files:
-            raise HTTPException(status_code=400, detail="File is not exist")
+        r_data = await websocket.receive_json()
 
-        payload = get_current_user(token)
-        username = payload[1]
-        if username is None:
+        if r_data["type"] != "auth" or r_data["token"] is None:
             raise credentials_exception
 
+        token = r_data["token"]
+
+        payload = get_current_user(token)
+
+        websocket.send_json({"cmd": "start"})
+
+        username = payload["username"]
+
         user = crud.get_user(db, username)
-
-        file_permit = crud.get_file_permit(db, user.id)
-
-        if not file_permit.file or file_permit.file == 0:
-            raise HTTPException(status_code=400, detail="File permission denied")
 
         if user is None:
             raise credentials_exception
 
-        upload_path = f"../drive/{user.mail}"
-        count = len(files)
-        if count > 10:
-            raise HTTPException(status_code=400, detail="File count is too large")
+        file_permit = crud.get_file_permit(db, user.id)
+
+        if not file_permit.file or file_permit.file == 0:
+            raise Exception("File permission denied")
+
+        upload_path = os.path.join("../drive", user.mail)
 
         file_max_size = file_permit.size
+
+        file_info = await websocket.receive_json()
+
         if file_permit.unit == "KB":
             file_max_size *= 1024
         elif file_permit.unit == "MB":
@@ -121,20 +100,63 @@ async def post_file_upload(
         elif file_permit.unit == "GB":
             file_max_size *= 1024 * 1024 * 1024
 
-        for index, file in enumerate(files):
-            result = await save_upload_file_tmp(
-                file, upload_path, max_size=file_max_size
+        if file_info["cmd"] != "start":
+            raise Exception("File upload error")
+
+        file_name = file_info["detail"]["name"]
+        file_size = file_info["detail"]["size"]
+        # chunk_size = file_info["detail"]["chunk_size"]
+
+        if file_size > file_max_size:
+            await websocket.send_json(
+                {"cmd": "error", "detail": "File size is too large"}
             )
+            raise Exception("File size is too large")
 
-            if result["cmd"] == "error":
-                count -= 1
+        file_name_nfc = unicodedata.normalize("NFC", file_name)
 
-        data = {"detail": f"{count} 개의 파일 업로드에 성공했습니다."}
+        file_name_encode = file_name_nfc.replace(" ", "_")
 
-    except JWTError:
-        raise credentials_exception
+        file_path = os.path.join(upload_path, file_name_encode)
 
-    return data
+        count = 0
+        while os.path.exists(file_path):
+            count += 1
+            file_name_tmp, file_extension = os.path.splitext(file_name_encode)
+            file_name_tmp = file_name_tmp + f"_({count})" + file_extension
+            file_path = os.path.join(upload_path, file_name_tmp)
+
+        chunk_size = 0
+        with open(file_path, "wb") as f:
+            while True:
+                data = await websocket.receive_bytes()
+
+                if data == b"EOF":
+                    await websocket.send_json({"cmd": "EOF", "detail": "ack"})
+                    break
+
+                f.write(data)
+                chunk_size += len(data)
+
+                await websocket.send_json(
+                    {"cmd": "update", "detail": f"len {chunk_size}"}
+                )
+
+        await websocket.send_json({"cmd": "EOF", "detail": "success"})
+
+        await websocket.close()
+
+    except WebSocketDisconnect:
+        logger.info("websocket_endpoint > WebSocketDisconnect")
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+
+    except Exception as e:
+        logger.info("websocket_endpoint > " + str(e))
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+        await websocket.send_json({"cmd": "error", "detail": f"{e}"})
+        await websocket.close()
 
 
 def file_sort(path, start, end, sort, order, search):
@@ -174,7 +196,7 @@ def get_file_list(
     sort: str = "asc",
     order: str = "name",
     search: str = "",
-    token: str = Depends(oauth2_scheme),
+    payload: dict = Depends(get_current_user),
 ):
     """
     # File 리스트 출력 API
@@ -182,16 +204,9 @@ def get_file_list(
     Returns:
         str: 파일 리스트를 json 형태로 반환
     """
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Unauthorized",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+
     try:
-        payload = get_current_user(token)
-        username = payload[1]
-        if username is None:
-            raise credentials_exception
+        username = payload["username"]
 
         file_path = f"../drive/{username}"
 
@@ -209,11 +224,11 @@ def get_file_list(
             file_size = (
                 f"{file_size_tmp} B"
                 if file_size_tmp < 1024
-                else f"{round(file_size_tmp/1024,2)} KB"
+                else f"{round(file_size_tmp/1024,1)} KB"
                 if file_size_tmp < 1024 * 1024
-                else f"{round(file_size_tmp/(1024*1024),2)} MB"
+                else f"{round(file_size_tmp/(1024*1024),1)} MB"
                 if file_size_tmp < 1024 * 1024 * 1024
-                else f"{round(file_size_tmp/(1024*1024*1024),2)} GB"
+                else f"{round(file_size_tmp/(1024*1024*1024),1)} GB"
             )
 
             file_name = file.replace("_", " ")
@@ -221,11 +236,12 @@ def get_file_list(
             file_info.append({"name": file_name, "size": file_size})
 
         if not file_list:
-            raise HTTPException(status_code=400, detail="아직 업로드한 파일이 없습니다.")
+            raise HTTPException(status_code=411, detail="아직 업로드한 파일이 없습니다.")
 
         return {"file_list": file_info, "file_count": file_count}
 
     except JWTError:
+        logger.info("file list > JWTError")
         raise credentials_exception
 
 
@@ -233,20 +249,10 @@ def get_file_list(
 def get_file_download(
     file_name: str,
     request: Request,
-    token: str = Depends(oauth2_scheme),
+    payload: dict = Depends(get_current_user),
 ):
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Unauthorized",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        payload = get_current_user(token)
-
-        username = payload[1]
-
-        if username is None:
-            raise credentials_exception
+        username = payload["username"]
 
         file_name = file_name.replace(" ", "_")
 
@@ -281,7 +287,7 @@ def get_file_download(
 @file_router.delete("/delete")
 def delete_file(
     file_name: str,
-    token: str = Depends(oauth2_scheme),
+    payload: dict = Depends(get_current_user),
 ):
     credits_exception = HTTPException(
         status_code=401,
@@ -289,8 +295,7 @@ def delete_file(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = get_current_user(token)
-        username = payload[1]
+        username = payload["username"]
 
         file_name_encode = file_name.replace(" ", "_")
 
@@ -311,7 +316,6 @@ def delete_file(
 def get_file_download_public(
     file_name: str,
 ):
-    print(file_name)
     if file_name == "favicon.ico":
         return FileResponse("./favicon.ico")
     if file_name == "robots.txt":
