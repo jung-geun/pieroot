@@ -1,17 +1,23 @@
 import Home from "./pages/Home.svelte";
-import Portfolio from "./pages/Portfolio/+page.svelte";
-import File from "./pages/File/+page.svelte";
-import Gallery from "./pages/Gallery/+page.svelte";
-import Login from "./pages/Login/+page.svelte";
-import Logout from "./pages/Login/+page.svelte";
 import NotFound from "./pages/NotFound.svelte";
+import { wrap } from "svelte-spa-router/wrap";
 
 export default {
   "/": Home,
-  "/portfolio": Portfolio,
-  "/file": File,
-  "/gallery": Gallery,
-  "/login": Login,
-  "/logout": Logout,
+  "/portfolio": wrap({
+    asyncComponent: () => import("./pages/Portfolio/+page.svelte"),
+  }),
+  "/file": wrap({
+    asyncComponent: () => import("./pages/File/+page.svelte"),
+  }),
+  "/gallery": wrap({
+    asyncComponent: () => import("./pages/Gallery/+page.svelte"),
+  }),
+  "/login": wrap({
+    asyncComponent: () => import("./pages/Login/+page.svelte"),
+  }),
+  "/logout": wrap({
+    asyncComponent: () => import("./pages/Login/+page.svelte"),
+  }),
   "*": NotFound,
 };

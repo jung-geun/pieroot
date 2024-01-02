@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { error, token_get } from "$lib/ts/token";
+  import { token_get } from "$lib/ts/token";
+  import { updateError } from "$src/components/Error.svelte";
   import FastAPI from "$src/lib/ts/api";
   import { access_token, domain, is_login, username } from "$stores/store";
   import { toast } from "@zerodevx/svelte-toast";
@@ -79,15 +80,26 @@
         prev_flag = currentPage <= 1;
       },
       (json_error: any) => {
-        error.detail = json_error.detail;
-        toast.push(json_error.detail, {
-          theme: {
-            "--toastBackground": "#f87171",
-            "--toastProgressBackground": "#ef4444",
-          },
-        });
+        updateError(json_error.detail);
       }
     );
+  };
+
+  const ShortLivedToken = async () => {
+    return new Promise((resolve, reject) => {
+      FastAPI(
+        "post",
+        "/users/token/short-lived",
+        {},
+        (json: any) => {
+          resolve(json.access_token);
+        },
+        (json_error: any) => {
+          updateError(json_error.detail);
+          reject(json_error.detail);
+        }
+      );
+    });
   };
 
   const file_upload_check = (files: FileList | null) => {
@@ -103,7 +115,7 @@
     return true;
   };
 
-  const file_upload = (files: FileList | null, event: any) => {
+  const file_upload = async (files: FileList | null, event: any) => {
     event.preventDefault();
 
     if (!files || files.length == 0) {
@@ -116,13 +128,9 @@
       return;
     }
 
-    if (files && files.length > 10) {
-      toast.push("파일은 한번에 10개까지만 업로드 가능합니다.", {
-        theme: {
-          "--toastBackground": "#f87171",
-          "--toastProgressBackground": "#ef4444",
-        },
-      });
+    if (file_upload_check(files) == false) {
+      files = null;
+      input.value = "";
       return;
     }
 
@@ -132,152 +140,151 @@
 
     let fileListArray = Array.from(files);
 
-    for (let i = 0; i < fileListArray.length; i++) {
-      const file = fileListArray[i];
-      let chunk_offset = 0;
-      const file_size = file.size;
-      const file_name = file.name;
+    try {
+      const short_lived_token_promise = await ShortLivedToken();
 
       const socket_url =
-        "wss://" + get(domain).split("//")[1] + "/file/ws/upload";
-      const socket = new WebSocket(socket_url);
+        "wss://" +
+        get(domain).split("//")[1] +
+        "/file/ws/upload/" +
+        short_lived_token_promise;
 
-      const progress_label_div = document.createElement("div");
-      const progress_label_h3 = document.createElement("h3");
-      const progress_label_span = document.createElement("span");
+      for (let i = 0; i < fileListArray.length; i++) {
+        const file = fileListArray[i];
+        let chunk_offset = 0;
+        const file_size = file.size;
+        const file_name = file.name;
 
-      progress_label_div.className = "md-2 flex justify-between items-center";
+        const socket = new WebSocket(socket_url);
 
-      progress_label_h3.className =
-        "text-sm font-semibold text-gray-800 dark:text-white";
-      progress_label_h3.innerHTML = file_name;
+        const progress_label_div = document.createElement("div");
+        const progress_label_h3 = document.createElement("h3");
+        const progress_label_span = document.createElement("span");
 
-      progress_label_span.className = "text-sm text-gray-800 dark:text-white";
+        progress_label_div.className = "md-2 flex justify-between items-center";
 
-      progress_label_div.appendChild(progress_label_h3);
-      progress_label_div.appendChild(progress_label_span);
+        progress_label_h3.className =
+          "text-sm font-semibold text-gray-800 dark:text-white";
+        progress_label_h3.innerHTML = file_name;
 
-      const progress_format = document.createElement("div");
-      const progress_bar = document.createElement("div");
+        progress_label_span.className = "text-sm text-gray-800 dark:text-white";
 
-      progress_format.className =
-        "flex w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700";
+        progress_label_div.appendChild(progress_label_h3);
+        progress_label_div.appendChild(progress_label_span);
 
-      progress_bar.className =
-        "flex flex-col justify-center rounded-full overflow-hidden bg-green-500 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500";
+        const progress_format = document.createElement("div");
+        const progress_bar = document.createElement("div");
 
-      progress_bar.style.width = "0%";
+        progress_format.className =
+          "flex w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700";
 
-      progress_format.appendChild(progress_bar);
+        progress_bar.className =
+          "flex flex-col justify-center rounded-full overflow-hidden bg-green-500 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-blue-500";
 
-      progress_group?.appendChild(progress_label_div);
-      progress_group?.appendChild(progress_format);
+        progress_bar.style.width = "0%";
 
-      socket.onmessage = (event) => {
-        let json_data = JSON.parse(event.data);
+        progress_format.appendChild(progress_bar);
 
-        if (json_data.cmd == "update" && json_data.detail != "error") {
-          let progress_size = json_data.detail.split("len ")[1];
-          let percent = Math.round((progress_size / file_size) * 100);
-          progress_bar.style.width = percent + "%";
-          progress_label_span.innerHTML = percent + "%";
-        }
+        progress_group?.appendChild(progress_label_div);
+        progress_group?.appendChild(progress_format);
 
-        if (json_data.cmd == "EOF") {
-          if (json_data.detail == "success") {
-            toast.push(file_name + " 파일 업로드에 성공했습니다.", {
-              theme: {
-                "--toastBackground": "#34d399",
-                "--toastProgressBackground": "#059669",
-              },
-            });
-          } else if (json_data.detail == "fail") {
-            toast.push(file_name + " 파일 업로드에 실패했습니다.", {
+        socket.onmessage = (event) => {
+          let json_data = JSON.parse(event.data);
+
+          if (json_data.cmd == "update" && json_data.detail != "error") {
+            let progress_size = json_data.detail.split("len ")[1];
+            let percent = Math.round((progress_size / file_size) * 100);
+            progress_bar.style.width = percent + "%";
+            progress_label_span.innerHTML = percent + "%";
+          }
+
+          if (json_data.cmd == "EOF") {
+            if (json_data.detail == "success") {
+              toast.push(file_name + " 파일 업로드에 성공했습니다.", {
+                theme: {
+                  "--toastBackground": "#34d399",
+                  "--toastProgressBackground": "#059669",
+                },
+              });
+            } else if (json_data.detail == "fail") {
+              toast.push(file_name + " 파일 업로드에 실패했습니다.", {
+                theme: {
+                  "--toastBackground": "#f87171",
+                  "--toastProgressBackground": "#ef4444",
+                },
+              });
+            }
+            setTimeout(() => {
+              progress_bar.remove();
+              progress_format.remove();
+
+              progress_label_span.remove();
+              progress_label_h3.remove();
+
+              progress_label_div?.remove();
+            }, 2000);
+          }
+
+          if (json_data.cmd == "error") {
+            progress_bar.classList.add("bg-red-500");
+            progress_label_span.innerHTML = "error";
+            toast.push(file_name + "파일 업로드에 실패했습니다.", {
               theme: {
                 "--toastBackground": "#f87171",
                 "--toastProgressBackground": "#ef4444",
               },
             });
+            socket.close();
           }
-          setTimeout(() => {
-            progress_bar.remove();
-            progress_format.remove();
+        };
 
-            progress_label_span.remove();
-            progress_label_h3.remove();
+        socket.onopen = () => {
+          let s_data = {
+            cmd: "start",
+            detail: {
+              name: file.name,
+              size: file.size,
+              chunk_size: chunk_size,
+            },
+          };
 
-            progress_label_div?.remove();
-          }, 2000);
-        }
+          socket.send(JSON.stringify(s_data));
 
-        if (json_data.cmd == "error") {
+          while (chunk_offset < file.size) {
+            const chuck = file.slice(chunk_offset, chunk_offset + chunk_size);
+            socket.send(chuck);
+            // byte 단위로 전송
+            chunk_offset += chunk_size;
+          }
+
+          const textEncoder = new TextEncoder();
+          const EOF = textEncoder.encode("EOF");
+          socket.send(EOF);
+        };
+
+        socket.onclose = () => {
+          fileListArray.splice(i, 1);
+          get_file_list();
+        };
+
+        socket.onerror = () => {
           progress_bar.classList.add("bg-red-500");
           progress_label_span.innerHTML = "error";
-          toast.push("파일 업로드에 실패했습니다.", {
-            theme: {
-              "--toastBackground": "#f87171",
-              "--toastProgressBackground": "#ef4444",
-            },
-          });
+          updateError("파일 업로드에 실패했습니다.");
           socket.close();
-        }
-      };
-
-      socket.onopen = () => {
-        const message = {
-          type: "auth",
-          token: get(access_token),
         };
-        socket.send(JSON.stringify(message));
-
-        let s_data = {
-          cmd: "start",
-          detail: {
-            name: file.name,
-            size: file.size,
-            chunk_size: chunk_size,
-          },
-        };
-
-        socket.send(JSON.stringify(s_data));
-
-        while (chunk_offset < file.size) {
-          const chuck = file.slice(chunk_offset, chunk_offset + chunk_size);
-          socket.send(chuck);
-          // byte 단위로 전송
-          chunk_offset += chunk_size;
-        }
-
-        const textEncoder = new TextEncoder();
-        const EOF = textEncoder.encode("EOF");
-        socket.send(EOF);
-      };
-
-      socket.onclose = () => {
-        fileListArray.splice(i, 1);
-        get_file_list();
-      };
-
-      socket.onerror = () => {
-        progress_bar.classList.add("bg-red-500");
-        progress_label_span.innerHTML = "error";
-        toast.push("파일 업로드에 실패했습니다.", {
-          theme: {
-            "--toastBackground": "#f87171",
-            "--toastProgressBackground": "#ef4444",
-          },
-        });
-        socket.close();
-      };
+      }
+      files = null;
+      input.value = "";
+    } catch (e: any) {
+      updateError(e);
     }
-    files = null;
-    input.value = "";
   };
 
-  const file_download = (file_name: string, event: any) => {
+  const file_download = async (file_name: string, event: any) => {
     event.preventDefault();
     let params = { file_name: file_name };
-    let _url = domain + "/file/download?" + new URLSearchParams(params);
+    let _url = get(domain) + "/file/download?" + new URLSearchParams(params);
     let option = {
       method: "get",
       headers: {
@@ -285,28 +292,21 @@
       },
       body: null,
     };
-    fetch(_url, option).then((response) => {
+    await fetch(_url, option).then(async (response) => {
       if (response.status == 200) {
-        response.blob().then((blob) => {
-          let fileUrl = window.URL.createObjectURL(blob);
-          let a = document.createElement("a");
+        const blob = await response.blob();
+        let fileUrl = window.URL.createObjectURL(blob);
+        let a = document.createElement("a");
 
-          a.href = fileUrl;
-          a.download = file_name;
+        a.href = fileUrl;
+        a.download = file_name;
 
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } else {
         response.json().then((json) => {
-          error.detail = json.detail;
-          toast.push(json.detail, {
-            theme: {
-              "--toastBackground": "#f87171",
-              "--toastProgressBackground": "#ef4444",
-            },
-          });
+          updateError(json.detail);
         });
       }
     });
@@ -331,13 +331,7 @@
         get_file_list();
       },
       (json_error: any) => {
-        error.detail = json_error.detail;
-        toast.push(json_error.detail, {
-          theme: {
-            "--toastBackground": "#f87171",
-            "--toastProgressBackground": "#ef4444",
-          },
-        });
+        updateError(json_error.detail);
       }
     );
   };
@@ -388,7 +382,6 @@
         multiple
         bind:files
         bind:this={input}
-        disabled={error.detail != ""}
         on:change={() => {
           if (!file_upload_check(files)) {
             files = null;

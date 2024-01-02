@@ -1,5 +1,6 @@
 // Usage: import fastapi from "$lib/api";
 import { access_token, domain } from "$stores/store";
+import { toast } from "@zerodevx/svelte-toast";
 import qs from "qs";
 import { get } from "svelte/store";
 
@@ -70,7 +71,12 @@ const FastAPI = async (
           if (failure_callback) {
             failure_callback(json);
           } else {
-            alert(JSON.stringify(json));
+            toast.push("서버와 통신할 수 없습니다.", {
+              theme: {
+                "--toastBackground": "#ff0000",
+                "--toastProgressBackground": "#ff0000",
+              },
+            });
           }
         }
       })
@@ -78,7 +84,12 @@ const FastAPI = async (
         if (failure_callback) {
           failure_callback(error);
         } else {
-          alert(JSON.stringify(error));
+          toast.push("서버와 통신할 수 없습니다.", {
+            theme: {
+              "--toastBackground": "#ff0000",
+              "--toastProgressBackground": "#ff0000",
+            },
+          });
         }
       });
   });

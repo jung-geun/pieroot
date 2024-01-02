@@ -187,11 +187,13 @@
     <h1 class="text-3xl font-bold tracking-tight text-gray-900 px-3">
       {#if $location === "/"}
         Home
-      {:else}
+      {:else if ["/portfolio", "/gallery", "/file", "/login"].includes($location)}
         {$location
           .replace(/\b[a-z]/g, (char) => char.toUpperCase())
           .split("/")
           .join(" ")}
+      {:else}
+        404
       {/if}
     </h1>
   </div>

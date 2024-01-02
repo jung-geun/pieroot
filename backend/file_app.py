@@ -7,26 +7,20 @@ from typing import IO, Annotated, Dict, List
 from urllib.parse import quote
 
 from database_app import (
-    DataBaseApp,
-    User,
     crud,
     get_current_user,
     get_db,
-    oauth2_scheme,
 )
 from fastapi import (
     APIRouter,
     Depends,
-    File,
-    Form,
     HTTPException,
     Request,
-    UploadFile,
     WebSocket,
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from natsort import natsorted
@@ -56,24 +50,18 @@ credentials_exception = HTTPException(
 websocket_list: Dict[str, WebSocket] = {}
 
 
-@file_router.websocket("/ws/upload")
+@file_router.websocket("/ws/upload/{token}")
 async def websocket_endpoint(
     websocket: WebSocket,
+    token: str,
     db: Session = Depends(get_db),
 ):
     await websocket.accept()
 
     try:
-        r_data = await websocket.receive_json()
-
-        if r_data["type"] != "auth" or r_data["token"] is None:
-            raise credentials_exception
-
-        token = r_data["token"]
-
         payload = get_current_user(token)
 
-        websocket.send_json({"cmd": "start"})
+        await websocket.send_json({"cmd": "start"})
 
         username = payload["username"]
 
@@ -173,7 +161,7 @@ def file_sort(path, start, end, sort, order, search):
         file_list = [file for file in file_list_tmp if re.search(search, file)]
 
         if not file_list:
-            raise HTTPException(status_code=402, detail="검색 결과가 없습니다.")
+            raise HTTPException(status_code=404, detail="검색 결과가 없습니다.")
     else:
         file_list = file_list_tmp
 
@@ -246,7 +234,7 @@ def get_file_list(
 
 
 @file_router.get("/download")
-def get_file_download(
+async def get_file_download(
     file_name: str,
     request: Request,
     payload: dict = Depends(get_current_user),
@@ -259,29 +247,47 @@ def get_file_download(
         download_path = os.path.join("../drive", username, file_name)
 
         file_exist = os.path.exists(download_path)
+
         if not file_exist:
             raise HTTPException(status_code=400, detail="File is not exist")
 
-        headers = request.headers.get("User-Agent")
+        # headers = request.headers.get("User-Agent")
 
-        if "MSIE" in headers or "Trident" in headers:
-            file_name = quote(file_name)
-        elif "Chrome" in headers:
-            file_name = file_name.encode("UTF-8").decode("ISO-8859-1")
-        elif "Opera" in headers:
-            file_name = quote(file_name)
-        elif "Firefox" in headers:
-            file_name = quote(file_name)
-        else:
-            file_name = quote(file_name)
+        # if "MSIE" in headers or "Trident" in headers:
+        #     file_name = quote(file_name)
+        # elif "Chrome" in headers:
+        #     file_name = file_name.encode("UTF-8").decode("ISO-8859-1")
+        # elif "Opera" in headers:
+        #     file_name = quote(file_name)
+        # elif "Firefox" in headers:
+        #     file_name = quote(file_name)
+        # else:
+        #     file_name = quote(file_name)
 
-        return FileResponse(
-            download_path,
-            filename=file_name,
-        )
+        return FileResponse(download_path)
 
     except JWTError:
         raise credentials_exception
+
+
+@file_router.get("/public/{file_name}")
+async def get_file_download_public(
+    file_name: str,
+):
+    if file_name == "favicon.ico":
+        return FileResponse("./favicon.ico")
+    if file_name == "robots.txt":
+        return FileResponse("./robots.txt")
+
+    file_path = f"../drive/public/{file_name}"
+    if os.path.exists(file_path):
+        return StreamingResponse(
+            open(file_path, mode="rb"),
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={file_name}"},
+        )
+    else:
+        raise HTTPException(status_code=400, detail="File is not exist")
 
 
 @file_router.delete("/delete")
@@ -310,19 +316,3 @@ def delete_file(
 
     except JWTError:
         raise credits_exception
-
-
-@file_router.get("/public")
-def get_file_download_public(
-    file_name: str,
-):
-    if file_name == "favicon.ico":
-        return FileResponse("./favicon.ico")
-    if file_name == "robots.txt":
-        return FileResponse("./robots.txt")
-
-    file_path = f"../drive/public/{file_name}"
-    if os.path.exists(file_path):
-        return FileResponse(file_path, filename=file_name)
-    else:
-        raise HTTPException(status_code=400, detail="File is not exist")

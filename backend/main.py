@@ -1,5 +1,7 @@
 import json
 
+from fastapi.responses import RedirectResponse
+
 from database_app import DataBaseApp, init_env
 from fastapi import Depends, FastAPI
 from file_app import file_router
@@ -45,3 +47,11 @@ def index():
     """
 
     return FileResponse("../frontend/dist/index.html")
+
+@app.exception_handler(404)
+async def custom_404_handler(request, exc):
+    return RedirectResponse("/#/404")
+
+@app.exception_handler(405)
+async def custom_405_handler(request, exc):
+    return RedirectResponse("/")

@@ -17,12 +17,12 @@
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4">
         <a
-          href="{get(domain)}/file/public?file_name=cv.pdf"
+          href="{get(domain)}/file/public/cv.pdf"
           class="bg-gray-800 text-white block rounded-md px-3 py-2 text-base font-medium hover:bg-gray-700 hover:text-white mx-1"
           >CV</a
         >
         <a
-          href="{get(domain)}/file/public?file_name=이력서.pdf"
+          href="{get(domain)}/file/public/이력서.pdf"
           class="bg-gray-800 text-white block rounded-md px-3 py-2 text-base font-medium hover:bg-gray-700 hover:text-white mx-1"
           >이력서</a
         >

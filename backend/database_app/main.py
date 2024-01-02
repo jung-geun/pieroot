@@ -198,10 +198,18 @@ def token_login(
     Returns:
         JSONResponse: _description_
     """
-    try:
+    forwarded_for = request.headers.get("X-Forwarded-For", "Unknown")
+    if forwarded_for != "Unknown":
+        user_ip = forwarded_for.split(",")[0]
+    else:
         user_ip = request.client.host
+
+    logger.info(f"login: {user_ip}")
+    try:
         if not form_data.username:
-            logger.info(f"InvalidCredentialsException: mail > {form_data.username} to {user_ip}")
+            logger.info(
+                f"InvalidCredentialsException: mail > {form_data.username} to {user_ip}"
+            )
             raise HTTPException(
                 status_code=401,
                 detail="mail을 입력해주세요.",
@@ -263,7 +271,7 @@ def token_login(
             return response
 
     except Exception as e:
-        logger.info(f"login error > : {mail} to {user_ip}")
+        logger.info(f"login error > {user_ip}")
         raise credentials_exception
 
 
@@ -348,4 +356,38 @@ def token_refresh(
 
     except:
         logger.info("token refresh error")
+        raise credentials_exception
+
+@router.post("/token/short-lived")
+def token_short_lived(
+    payload = Depends(get_current_user),
+):
+    """단기 토큰을 생성하는 API
+    토큰을 생성합니다.
+    """
+    try:
+        username = payload["username"]
+        request_fingerprint = payload["fingerprint"]
+
+        access_token_expires = timedelta(minutes=30)
+        access_token = create_access_token(
+            request_fingerprint,
+            username,
+            access_token_expires,
+        )
+        
+        print(access_token)
+        print(username)
+
+        return JSONResponse(
+            {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "username": username,
+            },
+            status_code=200,
+        )
+
+    except:
+        logger.info("token refresh error > short-lived")
         raise credentials_exception

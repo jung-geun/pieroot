@@ -1,9 +1,8 @@
 import FastAPI from "$lib/ts/api";
+import { updateError } from "$src/components/Error.svelte";
 import { access_token, is_login, username } from "$stores/store";
 import { toast } from "@zerodevx/svelte-toast";
 import { push } from "svelte-spa-router";
-
-export let error: any = { detail: "" };
 
 export const token_login = async (
   login_username: string,
@@ -43,7 +42,7 @@ export const token_get = async () => {
       username.set(json.username);
     },
     (json_error: any) => {
-      token_refresh();
+      updateError(json_error.detail);
     }
   );
 };
@@ -59,6 +58,12 @@ export const token_delete = async () => {
     () => {},
     () => {}
   );
+  toast.push("로그아웃 되었습니다.", {
+    theme: {
+      "--toastBackground": "#0000ff",
+      "--toastProgressBackground": "#0000ff",
+    },
+  });
   push("/login");
 };
 
@@ -67,28 +72,15 @@ export const token_refresh = async () => {
     "put",
     "/users/token",
     {},
-    (json: any) => {
+    async (json: any) => {
       access_token.set(json.access_token);
       username.set(json.username);
       is_login.set(true);
-      push("/");
+      // 현재 페이지 새로고침
+      await location.reload();
     },
     (json_error: any) => {
       push("/logout");
     }
   );
 };
-
-$: if (error.detail == "Unauthorized") {
-  token_refresh();
-} else if (error.detail != "") {
-  toast.push(error.detail, {
-    theme: {
-      "--toastBackground": "#ff0000",
-      "--toastProgressBackground": "#ff0000",
-    },
-  });
-  setTimeout(() => {
-    error.detail = "";
-  }, 5000);
-}

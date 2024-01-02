@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { error, token_delete, token_login } from "$lib/ts/token";
+  import { updateError } from "$components/Error.svelte";
+  import { token_delete, token_login } from "$lib/ts/token";
   import { onMount } from "svelte";
   import { location } from "svelte-spa-router";
 
@@ -18,7 +19,7 @@
   function login_submit(event: any) {
     event.preventDefault();
     if (login_username == "" || login_password == "") {
-      error.detail = "아이디 또는 비밀번호를 입력해주세요.";
+      updateError("아이디 또는 비밀번호를 입력해주세요.");
       if (login_username == "") {
         let username_input = document.getElementById("username_input");
         if (username_input) username_input.focus();
@@ -47,20 +48,23 @@
             class="bg-gray-100 text-gray-700 border-0 rounded-md p-2 mb-4 focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150"
             type="email"
             id="username_input"
+            name="email"
+            autocomplete="email"
             bind:value={login_username}
-            required
             minlength="8"
             maxlength="50"
+            required
           />
           <input
             placeholder="Password"
             class="bg-gray-100 text-gray-700 border-0 rounded-md p-2 mb-4 focus:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition ease-in-out duration-150"
             type="password"
             id="password_input"
+            name="password"
             bind:value={login_password}
-            required
             minlength="8"
             maxlength="20"
+            required
           />
           <button
             class="bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold py-2 px-4 rounded-md mt-4 hover:bg-indigo-600 hover:to-blue-600 transition ease-in-out duration-150"
