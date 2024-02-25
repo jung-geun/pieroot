@@ -20,7 +20,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from natsort import natsorted
@@ -233,7 +233,7 @@ def get_file_list(
         raise credentials_exception
 
 
-@file_router.get("/download")
+@file_router.get("/download", response_class=FileResponse)
 async def get_file_download(
     file_name: str,
     request: Request,
@@ -264,7 +264,7 @@ async def get_file_download(
         # else:
         #     file_name = quote(file_name)
 
-        return FileResponse(download_path)
+        return download_path
 
     except JWTError:
         raise credentials_exception

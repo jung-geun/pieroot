@@ -4,9 +4,9 @@ import { wrap } from "svelte-spa-router/wrap";
 
 export default {
   "/": Home,
-  "/portfolio": wrap({
-    asyncComponent: () => import("./pages/Portfolio/+page.svelte"),
-  }),
+  // "/portfolio": wrap({
+  //   asyncComponent: () => import("./pages/Portfolio/+page.svelte"),
+  // }),
   "/file": wrap({
     asyncComponent: () => import("./pages/File/+page.svelte"),
   }),

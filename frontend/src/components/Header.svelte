@@ -68,15 +68,6 @@
         </a>
 
         <a
-          href="/portfolio"
-          use:link
-          class={$location === "/portfolio"
-            ? "bg-gray-600 dark:bg-gray-700 text-white dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"
-            : "text-slate-50 dark:text-gray-300 hover:bg-gray-600 hover:text-white hover:dark:text-slate-50 rounded-md px-3 py-2 text-sm font-medium"}
-          >Portfolio
-        </a>
-
-        <a
           href="/gallery"
           use:link
           class={$location === "/gallery"
@@ -142,15 +133,6 @@
           >Portfolio
         </a>
 
-        <a
-          href="/gallery"
-          use:link
-          class={$location === "/gallery"
-            ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-            : "text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"}
-          >Gallery
-        </a>
-
         {#if $is_login == false}
           <a
             href="/login"
@@ -187,7 +169,7 @@
     <h1 class="text-3xl font-bold tracking-tight text-gray-900 px-3">
       {#if $location === "/"}
         Home
-      {:else if ["/portfolio", "/gallery", "/file", "/login"].includes($location)}
+      {:else if ["/gallery", "/file", "/login"].includes($location)}
         {$location
           .replace(/\b[a-z]/g, (char) => char.toUpperCase())
           .split("/")
