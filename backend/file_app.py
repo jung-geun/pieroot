@@ -205,19 +205,15 @@ def get_file_list(
         file_info = []
         for index, file in enumerate(file_list):
             file_size_tmp = os.path.getsize(f"{file_path}/{file}")
-            file_size = (
-                f"{file_size_tmp} B"
-                if file_size_tmp < 1024
-                else (
-                    f"{round(file_size_tmp/1024,1)} KB"
-                    if file_size_tmp < 1024 * 1024
-                    else (
-                        f"{round(file_size_tmp/(1024*1024),1)} MB"
-                        if file_size_tmp < 1024 * 1024 * 1024
-                        else f"{round(file_size_tmp/(1024*1024*1024),1)} GB"
-                    )
-                )
-            )
+
+            if file_size_tmp < 1024:
+                file_size = f"{file_size_tmp} B"
+            elif file_size_tmp < 1024 * 1024:
+                file_size = f"{round(file_size_tmp/1024,1)} KB"
+            elif file_size_tmp < 1024 * 1024 * 1024:
+                file_size = f"{round(file_size_tmp/(1024*1024),1)} MB"
+            else:
+                file_size = f"{round(file_size_tmp/(1024*1024*1024),1)} GB"
 
             file_name = file.replace("_", " ")
 
