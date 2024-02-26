@@ -11,7 +11,7 @@
 │  ├─ store/             // svelte store
 │  ├─ app.css            // tailwindCSS
 │  ├─ App.svelte         // svelte main
-│  ├─ main.ts            // frontend main
+│  ├─ main.js            // frontend main
 │  └─ routes.ts          // svelte router
 ├─ .gitignore            // frontend gitignore
 ├─ index.html            // base index.html
@@ -20,7 +20,7 @@
 ├─ svelte.config.js
 ├─ tailwind.config.js
 ├─ tsconfig.json
-└─ vite.config.ts
+└─ vite.config.js
 ```
 
 프론트엔드는 vite + svelte + tailwindcss를 사용합니다.

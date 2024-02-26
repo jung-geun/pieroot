@@ -1,4 +1,4 @@
-import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { mdsvex } from "mdsvex";
 import remarkGrm from "remark-gfm";
 import github from "remark-github";
@@ -17,4 +17,4 @@ export default {
       ],
     }),
   ],
-};
+}

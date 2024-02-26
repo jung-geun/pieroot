@@ -2,19 +2,18 @@ from datetime import datetime
 
 from database_app import Base, DataBase
 from fastapi import Depends
-
 from sqlalchemy import (
     BINARY,
     CHAR,
     Column,
     DateTime,
+    ForeignKey,
     Integer,
     String,
     delete,
     insert,
     select,
     update,
-    ForeignKey,
 )
 from sqlalchemy.orm import relationship
 

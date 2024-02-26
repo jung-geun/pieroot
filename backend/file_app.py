@@ -6,11 +6,7 @@ import unicodedata
 from typing import IO, Annotated, Dict, List
 from urllib.parse import quote
 
-from database_app import (
-    crud,
-    get_current_user,
-    get_db,
-)
+from database_app import crud, get_current_user, get_db
 from fastapi import (
     APIRouter,
     Depends,
@@ -20,7 +16,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from natsort import natsorted
@@ -212,11 +208,15 @@ def get_file_list(
             file_size = (
                 f"{file_size_tmp} B"
                 if file_size_tmp < 1024
-                else f"{round(file_size_tmp/1024,1)} KB"
-                if file_size_tmp < 1024 * 1024
-                else f"{round(file_size_tmp/(1024*1024),1)} MB"
-                if file_size_tmp < 1024 * 1024 * 1024
-                else f"{round(file_size_tmp/(1024*1024*1024),1)} GB"
+                else (
+                    f"{round(file_size_tmp/1024,1)} KB"
+                    if file_size_tmp < 1024 * 1024
+                    else (
+                        f"{round(file_size_tmp/(1024*1024),1)} MB"
+                        if file_size_tmp < 1024 * 1024 * 1024
+                        else f"{round(file_size_tmp/(1024*1024*1024),1)} GB"
+                    )
+                )
             )
 
             file_name = file.replace("_", " ")
@@ -224,7 +224,9 @@ def get_file_list(
             file_info.append({"name": file_name, "size": file_size})
 
         if not file_list:
-            raise HTTPException(status_code=411, detail="아직 업로드한 파일이 없습니다.")
+            raise HTTPException(
+                status_code=411, detail="아직 업로드한 파일이 없습니다."
+            )
 
         return {"file_list": file_info, "file_count": file_count}
 

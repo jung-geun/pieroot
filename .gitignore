@@ -186,7 +186,7 @@ package
 .htaccess
 .vscode/
 logs/
-backend/tmp/
 backend/env.json
+frontend_bak/
 drive
 cert/

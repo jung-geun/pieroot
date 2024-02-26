@@ -13,5 +13,5 @@ __all__ = [
     "crud",
     "get_db",
     "oauth2_scheme",
-    "get_current_user"
+    "get_current_user",
 ]

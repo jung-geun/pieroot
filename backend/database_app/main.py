@@ -173,7 +173,9 @@ def create_user(
             )
         else:
             logger.info(f"create_user: {mail}")
-            return JSONResponse({"detail": "회원가입이 완료되었습니다."}, status_code=200)
+            return JSONResponse(
+                {"detail": "회원가입이 완료되었습니다."}, status_code=200
+            )
 
     except Exception as e:
         raise credentials_exception
@@ -358,9 +360,10 @@ def token_refresh(
         logger.info("token refresh error")
         raise credentials_exception
 
+
 @router.post("/token/short-lived")
 def token_short_lived(
-    payload = Depends(get_current_user),
+    payload=Depends(get_current_user),
 ):
     """단기 토큰을 생성하는 API
     토큰을 생성합니다.
@@ -375,7 +378,7 @@ def token_short_lived(
             username,
             access_token_expires,
         )
-        
+
         print(access_token)
         print(username)
 

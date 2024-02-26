@@ -25,4 +25,5 @@ $ cd backend
 
 $ uvicorn main:app --reload --ssl-keyfile /etc/ssl/key.pem --ssl-certfile /etc/ssl/cert.pem
 ```
+
 위의 key.pem과 cert.pem은 https를 위한 인증서 파일입니다. 서버에 맞게 경로를 수정해주세요.

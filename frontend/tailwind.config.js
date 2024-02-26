@@ -1,7 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 const plugin = require("tailwindcss/plugin");
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,svelte,tsx,jsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,svelte,tsx,jsx}"
+  ],
   theme: {
     extend: {
       colors: {
@@ -31,4 +34,5 @@ export default {
       });
     }),
   ],
-};
+}
+
