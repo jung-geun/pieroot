@@ -1,5 +1,11 @@
 # svelte + FastAPI + tailwindCSS + uvicorn(gunicorn)
 
+[![Quality Gate Status](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620&metric=alert_status&token=sqb_0cd1c62de713d658470bb234fa460b2089d94a1f)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620)
+
+[![Technical Debt](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620&metric=sqale_index&token=sqb_0cd1c62de713d658470bb234fa460b2089d94a1f)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620)
+
+[![Bugs](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620&metric=bugs&token=sqb_0cd1c62de713d658470bb234fa460b2089d94a1f)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620)
+
 ```
 ├─ backend/                 // fastapi + uvicorn
 ├─ frontend/                // svelte + tailwindcss

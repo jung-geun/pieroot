@@ -110,21 +110,7 @@ async def websocket_endpoint(
             file_name_tmp = file_name_tmp + f"_({count})" + file_extension
             file_path = os.path.join(upload_path, file_name_tmp)
 
-        chunk_size = 0
-        with open(file_path, "wb") as f:
-            while True:
-                data = await websocket.receive_bytes()
-
-                if data == b"EOF":
-                    await websocket.send_json({"cmd": "EOF", "detail": "ack"})
-                    break
-
-                f.write(data)
-                chunk_size += len(data)
-
-                await websocket.send_json(
-                    {"cmd": "update", "detail": f"len {chunk_size}"}
-                )
+        await save_file(websocket, file_path)
 
         await websocket.send_json({"cmd": "EOF", "detail": "success"})
 
@@ -141,6 +127,22 @@ async def websocket_endpoint(
             os.remove(file_path)
         await websocket.send_json({"cmd": "error", "detail": f"{e}"})
         await websocket.close()
+
+
+async def save_file(websocket: WebSocket, file_path: str):
+    chunk_size = 0
+    with open(file_path, "wb") as f:
+        while True:
+            data = await websocket.receive_bytes()
+
+            if data == b"EOF":
+                await websocket.send_json({"cmd": "EOF", "detail": "ack"})
+                break
+
+            f.write(data)
+            chunk_size += len(data)
+
+            await websocket.send_json({"cmd": "update", "detail": f"len {chunk_size}"})
 
 
 def file_sort(path, start, end, sort, order, search):
