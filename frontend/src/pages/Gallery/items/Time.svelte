@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { clock } from "../pages/Gallery/items/time.js";
+  import { clock } from "./time.js";
 </script>
 
 <div class="flex py-5 justify-center items-center">

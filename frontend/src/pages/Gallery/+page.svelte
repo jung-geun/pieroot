@@ -1,5 +1,6 @@
 <script>
-  import Time from "$lib/Time.svelte";
+  // import Time from "$lib/Time.svelte";
+  import Time from "$src/pages/Gallery/items/Time.svelte"
 </script>
 
 <main>
