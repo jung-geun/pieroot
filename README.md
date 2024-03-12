@@ -1,10 +1,9 @@
 # svelte + FastAPI + tailwindCSS + uvicorn(gunicorn)
 
-[![Quality Gate Status](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620&metric=alert_status&token=sqb_0cd1c62de713d658470bb234fa460b2089d94a1f)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620)
-
-[![Technical Debt](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620&metric=sqale_index&token=sqb_0cd1c62de713d658470bb234fa460b2089d94a1f)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620)
-
-[![Bugs](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620&metric=bugs&token=sqb_0cd1c62de713d658470bb234fa460b2089d94a1f)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_598da0cf-84bb-44e0-b2cc-b93946dd2620)
+[![Quality Gate Status](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd&metric=alert_status&token=sqb_51c8ef25d69977515ed3cee6fa3f22e4d5260fb9)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd)
+[![Technical Debt](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd&metric=sqale_index&token=sqb_51c8ef25d69977515ed3cee6fa3f22e4d5260fb9)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd)
+[![Security Rating](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd&metric=security_rating&token=sqb_51c8ef25d69977515ed3cee6fa3f22e4d5260fb9)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd)
+[![Bugs](https://sonar.pieroot.xyz/api/project_badges/measure?project=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd&metric=bugs&token=sqb_51c8ef25d69977515ed3cee6fa3f22e4d5260fb9)](https://sonar.pieroot.xyz/dashboard?id=pieroot_pieroot_AY4ynhyXuAwlZ9Y7RLCd)
 
 ```
 ├─ backend/                 // fastapi + uvicorn
