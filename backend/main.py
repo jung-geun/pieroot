@@ -1,7 +1,7 @@
 import json
 
 from database_app import DataBaseApp, init_env
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from file_app import file_router
 from starlette.middleware.cors import CORSMiddleware

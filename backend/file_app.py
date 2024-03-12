@@ -4,7 +4,6 @@ import os
 import re
 import unicodedata
 from typing import IO, Annotated, Dict, List
-from urllib.parse import quote
 
 from database_app import crud, get_current_user, get_db
 from fastapi import (
@@ -16,7 +15,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import HTTPException
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from natsort import natsorted
@@ -42,12 +41,13 @@ credentials_exception = HTTPException(
     headers={"WWW-Authenticate": "Bearer"},
 )
 
+FILE_NOT_EXIST_MSG = "File is not exist"
 
 websocket_list: Dict[str, WebSocket] = {}
 
 
 @file_router.websocket("/ws/upload/{token}")
-async def websocket_endpoint(
+async def file_upload(
     websocket: WebSocket,
     token: str,
     db: Session = Depends(get_db),
@@ -69,7 +69,7 @@ async def websocket_endpoint(
         file_permit = crud.get_file_permit(db, user.id)
 
         if not file_permit.file or file_permit.file == 0:
-            raise Exception("File permission denied")
+            raise PermissionError("File permission denied")
 
         upload_path = os.path.join("../drive", user.mail)
 
@@ -85,7 +85,7 @@ async def websocket_endpoint(
             file_max_size *= 1024 * 1024 * 1024
 
         if file_info["cmd"] != "start":
-            raise Exception("File upload error")
+            raise IOError("File upload error")
 
         file_name = file_info["detail"]["name"]
         file_size = file_info["detail"]["size"]
@@ -95,7 +95,7 @@ async def websocket_endpoint(
             await websocket.send_json(
                 {"cmd": "error", "detail": "File size is too large"}
             )
-            raise Exception("File size is too large")
+            raise OverflowError("File size is too large")
 
         file_name_nfc = unicodedata.normalize("NFC", file_name)
 
@@ -159,7 +159,7 @@ def file_sort(path, start, end, sort, order, search):
         file_list = [file for file in file_list_tmp if re.search(search, file)]
 
         if not file_list:
-            raise HTTPException(status_code=404, detail="검색 결과가 없습니다.")
+            raise HTTPException(status_code=400, detail=FILE_NOT_EXIST_MSG)
     else:
         file_list = file_list_tmp
 
@@ -222,9 +222,7 @@ def get_file_list(
             file_info.append({"name": file_name, "size": file_size})
 
         if not file_list:
-            raise HTTPException(
-                status_code=411, detail="아직 업로드한 파일이 없습니다."
-            )
+            raise HTTPException(status_code=400, detail=FILE_NOT_EXIST_MSG)
 
         return {"file_list": file_info, "file_count": file_count}
 
@@ -249,20 +247,7 @@ async def get_file_download(
         file_exist = os.path.exists(download_path)
 
         if not file_exist:
-            raise HTTPException(status_code=400, detail="File is not exist")
-
-        # headers = request.headers.get("User-Agent")
-
-        # if "MSIE" in headers or "Trident" in headers:
-        #     file_name = quote(file_name)
-        # elif "Chrome" in headers:
-        #     file_name = file_name.encode("UTF-8").decode("ISO-8859-1")
-        # elif "Opera" in headers:
-        #     file_name = quote(file_name)
-        # elif "Firefox" in headers:
-        #     file_name = quote(file_name)
-        # else:
-        #     file_name = quote(file_name)
+            raise HTTPException(status_code=400, detail=FILE_NOT_EXIST_MSG)
 
         return download_path
 
@@ -287,7 +272,7 @@ async def get_file_download_public(
             headers={"Content-Disposition": f"attachment; filename={file_name}"},
         )
     else:
-        raise HTTPException(status_code=400, detail="File is not exist")
+        raise HTTPException(status_code=400, detail=FILE_NOT_EXIST_MSG)
 
 
 @file_router.delete("/delete")
@@ -308,7 +293,7 @@ def delete_file(
         file_path = f"../drive/{username}/{file_name_encode}"
 
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=400, detail="File is not exist")
+            raise HTTPException(status_code=400, detail=FILE_NOT_EXIST_MSG)
 
         os.remove(file_path)
 
